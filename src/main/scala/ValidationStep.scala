@@ -1,5 +1,6 @@
-import Domain.OrderQuantity.{Kilos, UnitQty}
-import Domain.ProductCode.{Gizmo, Widget}
+import Domain.AddressValidationError._
+import Domain.OrderQuantity._
+import Domain.ProductCode._
 import Domain._
 import Extensions._
 
@@ -13,9 +14,8 @@ object ValidationStep {
         }
     }
 
-     def checkAddressExists(unvalidatedAddress: UnvalidatedAddress) : ValidatedAddress ={
-        val validatedAddress = eitherToValue(unvalidatedAddress.validateAddress)
-        validatedAddress
+     def checkAddressExists(unvalidatedAddress: UnvalidatedAddress) : Either[ValidatedAddress, AddressValidationError] = {
+        unvalidatedAddress.validateAddress
     }
 
 
@@ -37,7 +37,14 @@ object ValidationStep {
 
 
     def toAddress(unvalidatedAddress: UnvalidatedAddress) : ValidatedAddress = {
-        checkAddressExists(unvalidatedAddress)
+        checkAddressExists(unvalidatedAddress) match {
+            case Right(value) => value match {
+                case InvalidFormat(invalidFormat) => throw new Exception(invalidFormat)
+                case AddressNotFound(addressNotFound) => throw new Exception(addressNotFound)
+            }
+
+            case Left(value) => value
+        }
     }
 
     def toValidateOrderLine(unvalidatedOrderLine: UnValidatedOrderLine) : ValidatedOrderLine = {

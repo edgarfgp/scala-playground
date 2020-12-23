@@ -2,6 +2,12 @@ import java.util.Date
 
 package object Domain {
 
+    trait AddressValidationError
+    object AddressValidationError {
+        final case class InvalidFormat(invalidFormat: String) extends AddressValidationError
+        final case class AddressNotFound(addressNotFound: String) extends AddressValidationError
+    }
+
     trait OrderTakingCommand
     object OrderTakingCommand {
         final case class Place(placeOrder: PlaceOrder) extends OrderTakingCommand
@@ -75,9 +81,7 @@ package object Domain {
     type CancelOrder = Command[UnvalidatedOrder]
     type AddressValidationService = UnvalidatedAddress => Option[ValidatedAddress]
     type CheckProductCodeExists = ProductCode => Boolean
-    type CheckedAddress = ValidatedAddress
-    type AddressValidationError = String
-    type CheckAddressExists = UnvalidatedAddress => CheckedAddress
+    type CheckAddressExists = UnvalidatedAddress => ValidatedAddress
     type ValidateOrder = (CheckProductCodeExists, CheckAddressExists, UnvalidatedOrder) => ValidatedOrder
     type GetProductPrice = ProductCode => BigDecimal
     type PriceOrder = (GetProductPrice, ValidatedOrder) => PricedOrder

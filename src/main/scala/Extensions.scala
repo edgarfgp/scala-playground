@@ -1,4 +1,5 @@
 
+import Domain.AddressValidationError.{AddressNotFound, InvalidFormat}
 import Domain.OrderQuantity.{Kilos, UnitQty}
 import Domain.ProductCode.{Gizmo, Widget}
 import Domain._
@@ -76,10 +77,13 @@ package object Extensions {
     }
 
     implicit class ValidateAddress(private val unvalidatedAddress : UnvalidatedAddress) extends AnyVal {
-        def validateAddress : Either[ValidatedAddress, String] = {
+        def validateAddress : Either[ValidatedAddress, AddressValidationError] = {
             if(unvalidatedAddress.addressLine1.length > 50) {
-                Right("Name can not be longer that 50")
-            }else{
+                Right(InvalidFormat("Invalid format for address"))
+            }else if(unvalidatedAddress.addressLine1.isEmpty){
+                Right(AddressNotFound("Address not found"))
+            }
+            else{
                 Left(ValidatedAddress(unvalidatedAddress.addressLine1,
                     unvalidatedAddress.addressLine2, unvalidatedAddress.addressLine3, unvalidatedAddress.addressLine4,
                     unvalidatedAddress.city, unvalidatedAddress.zipCode))
