@@ -2,6 +2,15 @@ import java.util.Date
 
 package object Domain {
 
+    trait PlaceOrderError
+    object PlaceOrderError {
+        final case class Validation(validationError: ValidationError) extends PlaceOrderError
+        final case class Pricing(pricingError: PricingError) extends PlaceOrderError
+        final case class ProductOutOfStock(productCode: ProductCode) extends PlaceOrderError
+        final case class RemoteService(remoteService: RemoteService) extends PlaceOrderError
+    }
+
+
     trait AddressValidationError
     object AddressValidationError {
         final case class InvalidFormat(invalidFormat: String) extends AddressValidationError
@@ -75,7 +84,6 @@ package object Domain {
 
     final case class BillableOrderPlaced(orderId: String, billingAddress: ValidatedAddress, amount: BigDecimal)
 
-    type PlaceOrderError = List[ValidationError]
     type PlaceOrder = Command[UnvalidatedOrder]
     type ChangeOrder = Command[UnvalidatedOrder]
     type CancelOrder = Command[UnvalidatedOrder]
@@ -146,6 +154,9 @@ package object Domain {
        price: BigDecimal)
 
     final case class ValidationError(fieldName: String, errorDescription: String)
+    final case class PricingError(fieldName: String, errorDescription: String)
+    final case class ServiceInfo(name: String, endPoint: String)
+    final case class RemoteServiceError(service : ServiceInfo, exception: Exception)
     final case class OrderAcknowledgmentSent(orderId : String, emailAddress: VerifiedEmailAddress)
     final case class OrderAcknowledgment(emailAddress: VerifiedEmailAddress, letter: HtmlString)
 
