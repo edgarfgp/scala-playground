@@ -133,6 +133,10 @@ package object Extensions {
         either.right.get
     }
 
+    def eitherToError[A, B](either: Either[A, B]) : A = {
+        either.left.get
+    }
+
     def optionToValue[T](option: Option[T]): T = {
         option match {
             case Some(value) => value

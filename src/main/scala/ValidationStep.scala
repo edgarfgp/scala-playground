@@ -7,18 +7,12 @@ import Domain.PlaceOrderError._
 
 object ValidationStep {
 
-    def predicateToPassTru(errorMessage: String, productCode: ProductCode): ProductCode = {
-        productCode.validateProductCode match {
-            case Right(productCode) => productCode
-            case Left(_) => throw new Exception(errorMessage)
-        }
-    }
-
-    def checkAddressExists(unvalidatedAddress: Address): Either[PlaceOrderError, Address] = {
+    private def checkAddressExists(unvalidatedAddress: Address): Either[PlaceOrderError, Address] = {
         unvalidatedAddress.validateAddress
     }
 
     private def validatedOrder(unvalidatedOrder: UnvalidatedOrder): Either[PlaceOrderError, ValidatedOrder] = {
+        // FIXME Add proper validation
         val orderId = eitherToValue(unvalidatedOrder.orderId.validateOrderId)
         val customerInfo = toCustomerInfo(unvalidatedOrder.customerInfo)
         val shippingAddress = toAddress(unvalidatedOrder.shippingAddress)
@@ -33,13 +27,13 @@ object ValidationStep {
         }
     }
 
-    def toCustomerInfo(unvalidatedCustomerInfo: CustomerInfo): CustomerInfo = {
+    private def toCustomerInfo(unvalidatedCustomerInfo: CustomerInfo): CustomerInfo = {
         val validateCustomerInfo = eitherToValue(unvalidatedCustomerInfo.validateCustomerInfo)
         validateCustomerInfo
     }
 
 
-    def toAddress(unvalidatedAddress: Address): Address = {
+    private def toAddress(unvalidatedAddress: Address): Address = {
         checkAddressExists(unvalidatedAddress) match {
             case Left(value) => value match {
                 case AddressInvalidFormat(invalidFormat) => throw new Exception(s"${invalidFormat.fieldName} $invalidFormat.errorDescription")
@@ -50,7 +44,7 @@ object ValidationStep {
         }
     }
 
-    def toValidateOrderLine(unvalidatedOrderLine: UnValidatedOrderLine): ValidatedOrderLine = {
+    private def toValidateOrderLine(unvalidatedOrderLine: UnValidatedOrderLine): ValidatedOrderLine = {
         val orderLineId = eitherToValue(unvalidatedOrderLine.orderLineId.validateOrderLineId)
         val orderId = eitherToValue(unvalidatedOrderLine.orderId.validateOrderId)
         val productCode = toProductCode(unvalidatedOrderLine.productCode)
@@ -62,7 +56,7 @@ object ValidationStep {
         ValidatedOrderLine(orderLineId, orderId, productCode, orderQuantity, orderPrice)
     }
 
-    def toOrderQuantity(productCode: ProductCode, orderQuantity: OrderQuantity): OrderQuantity = {
+    private def toOrderQuantity(productCode: ProductCode, orderQuantity: OrderQuantity): OrderQuantity = {
         (productCode, orderQuantity) match {
             case (Widget(_), UnitQty(quantity)) =>
                 val code = eitherToValue(quantity.validateOrderQuantity)
@@ -76,14 +70,11 @@ object ValidationStep {
         }
     }
 
-    def toProductCode(productCode: ProductCode): ProductCode = {
-        val errorMessage = s"Invalid: $productCode"
-        val validatedProductCode = eitherToValue(productCode.validateProductCode)
-        val checkProduct = predicateToPassTru(errorMessage, validatedProductCode)
-        checkProduct
+    private def toProductCode(productCode: ProductCode): ProductCode = {
+        eitherToValue(productCode.validateProductCode)
     }
 
-    def priceOrder(validatedOrder: ValidatedOrder): Either[PlaceOrderError, PricedOrder] = {
+    private def priceOrder(validatedOrder: ValidatedOrder): Either[PlaceOrderError, PricedOrder] = {
         val lines = validatedOrder.orderLines.map(line => toPricedOrderLine(line))
         val amountToBill = validatedOrder.orderLines.map(line => line.price).sum
         if (lines.nonEmpty && amountToBill >= 0) {
@@ -94,7 +85,7 @@ object ValidationStep {
 
     }
 
-    def toPricedOrderLine(validatedOrderLine: ValidatedOrderLine): PricedOrderLine = {
+    private def toPricedOrderLine(validatedOrderLine: ValidatedOrderLine): PricedOrderLine = {
         val qty = validatedOrderLine.orderQuantity.value
         val price = getProductPrice(validatedOrderLine.productCode, validatedOrderLine)
         val linePrice = multiplyPrice(qty, optionToValue(price))
@@ -111,7 +102,7 @@ object ValidationStep {
         }
     }
 
-    def getProductPrice(productCode: ProductCode, validatedOrderLine: ValidatedOrderLine): Option[BigDecimal] = {
+    private def getProductPrice(productCode: ProductCode, validatedOrderLine: ValidatedOrderLine): Option[BigDecimal] = {
         if (validatedOrderLine.productCode == productCode) {
             Some(validatedOrderLine.price)
         } else {
@@ -119,7 +110,7 @@ object ValidationStep {
         }
     }
 
-    def changeOrderLinePrice(order: ValidatedOrder, orderLineId: String, newPrice: BigDecimal): ValidatedOrder = {
+    private def changeOrderLinePrice(order: ValidatedOrder, orderLineId: String, newPrice: BigDecimal): ValidatedOrder = {
         // Find orderLine in order.OrderLines using the orderLineId
         val orderLine = order.orderLines.find(ol => ol.orderLineId == orderLineId)
 

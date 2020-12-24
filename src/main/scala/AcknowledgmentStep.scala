@@ -19,11 +19,7 @@ object AcknowledgmentStep {
     }
 
     private def createBillingEvent(pricedOrder: PricedOrder): Option[BillPlaced] = {
-        val billingAmount = pricedOrder.amountToBill.validateBillingAmount match {
-            case Right(value) => value
-            case Left(errorMessage) => throw new Exception(errorMessage)
-        }
-
+        val billingAmount = eitherToValue(pricedOrder.amountToBill.validateBillingAmount)
         if (billingAmount > 0) {
             Some(BillPlaced(BillableOrderPlaced(pricedOrder.orderId, pricedOrder.billingAddress, billingAmount)))
         } else {

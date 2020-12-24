@@ -6,7 +6,7 @@ object Main {
 
     def main(args: Array[String]): Unit = {
 
-        val unvalidatedOrder = UnvalidatedOrder("ABC123",
+        val unvalidatedOrder = UnvalidatedOrder("1111",
             CustomerInfo(PersonalName("Edgar", None, "Gonzalez"), "edgargonzalez.info@gmail.com"),
             Address("Calle 72", "Portal 4 1H", "Madrid", "", "", ""),
             Address("Calle 72", "Portal 4 1H", "Madrid", "", "", ""),
