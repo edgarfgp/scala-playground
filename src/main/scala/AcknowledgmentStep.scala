@@ -6,7 +6,7 @@ import Extensions._
 
 object AcknowledgmentStep {
 
-    def acknowledgmentOrder(pricedOrder: PricedOrder) : Option[OrderAcknowledgmentSent] = {
+    def acknowledgmentOrder(pricedOrder: PricedOrder): Option[OrderAcknowledgmentSent] = {
         val letter = createOrderAcknowledgmentLetter(pricedOrder)
         val acknowledgment = OrderAcknowledgment(pricedOrder.customerInfo.emailAddress, letter)
         sendOrderAcknowledgment(acknowledgment) match {
@@ -18,21 +18,20 @@ object AcknowledgmentStep {
         }
     }
 
-    def createBillingEvent(pricedOrder: PricedOrder) : Option[BillPlaced] = {
+    private def createBillingEvent(pricedOrder: PricedOrder): Option[BillPlaced] = {
         val billingAmount = pricedOrder.amountToBill.validateBillingAmount match {
-            case Left(value) => value
-            case Right(_) => null
+            case Right(value) => value
+            case Left(errorMessage) => throw new Exception(errorMessage)
         }
 
-        if(billingAmount > 0) {
+        if (billingAmount > 0) {
             Some(BillPlaced(BillableOrderPlaced(pricedOrder.orderId, pricedOrder.billingAddress, billingAmount)))
-        }else{
+        } else {
             None
         }
-
     }
 
-    def createEvents (pricedOrder: PricedOrder, orderAcknowledgmentSent: Option[OrderAcknowledgmentSent]) : List[PlaceOrderEvent] = {
+    def createEvents(pricedOrder: PricedOrder, orderAcknowledgmentSent: Option[OrderAcknowledgmentSent]): List[PlaceOrderEvent] = {
         val event1 = List(Placed(pricedOrder))
         val event2 = listToOption(orderAcknowledgmentSent.map(order => AcknowledgmentSent(order)))
         val event3 = listToOption(createBillingEvent(pricedOrder).map(bill => bill))
@@ -41,15 +40,15 @@ object AcknowledgmentStep {
         } yield result
     }
 
-    private def createOrderAcknowledgmentLetter(pricedOrder: PricedOrder) : HtmlString = {
+    private def createOrderAcknowledgmentLetter(pricedOrder: PricedOrder): String = {
         val htmlString = s"Thanks Mr.${pricedOrder.customerInfo.name} for using our services."
         htmlString
     }
 
-    private def sendOrderAcknowledgment(orderAcknowledgment: OrderAcknowledgment) : SendResult = {
-        if(orderAcknowledgment.emailAddress.nonEmpty & orderAcknowledgment.letter.nonEmpty){
+    private def sendOrderAcknowledgment(orderAcknowledgment: OrderAcknowledgment): SendResult = {
+        if (orderAcknowledgment.emailAddress.nonEmpty & orderAcknowledgment.letter.nonEmpty) {
             Sent
-        }else{
+        } else {
             NotSent
         }
     }
