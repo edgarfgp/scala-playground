@@ -4,8 +4,10 @@ version := "0.1"
 
 scalaVersion := "2.13.4"
 
-val CatsVersion = "2.1.1"
+val circeVersion = "0.12.3"
 
 libraryDependencies ++= Seq(
-    "org.typelevel" %% "cats-core" %CatsVersion
-)
+    "io.circe" %% "circe-core",
+    "io.circe" %% "circe-generic",
+    "io.circe" %% "circe-parser"
+).map(_ % circeVersion)

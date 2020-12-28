@@ -1,7 +1,15 @@
-import PlaceOrderDTO.{PlaceOrderErrorDto, PlaceOrderEventDto}
-import PlaceOrderImplementation._
+import PlaceOrderDTO.{OrderFormDto, PlaceOrderErrorDto, PlaceOrderEventDto}
 import PlaceOrderImplementation.SendResult.Sent
+import PlaceOrderImplementation._
 import PublicTypes.{PlaceOrderError, PlaceOrderEvent}
+import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
+import io.circe.{ Decoder, Encoder }, io.circe.generic.semiauto._
+import io.circe.{Decoder, Encoder}
+import io.circe.generic.semiauto._
+
+
+import scala.concurrent.Future
+import scala.io.Source
 
 object PlaceOrderApi {
     // ======================================================
@@ -27,8 +35,6 @@ object PlaceOrderApi {
 
     /// An API takes a HttpRequest as input and returns a async response
     type PlaceOrderApi = HttpRequest => HttpResponse
-
-
 
     // =============================
     // Implementation
@@ -58,51 +64,36 @@ object PlaceOrderApi {
     // -------------------------------
     // workflow
     // -------------------------------
-
     def workflowResultToHttpResponse(result : Either[PlaceOrderError, List[PlaceOrderEvent]]) : HttpResponse = {
         result match {
-            case Left(error) =>
-                val dto = PlaceOrderErrorDto.fromDomain(error)
-                // FIXME Add Deserialization here
-                //let json = JsonConvert.SerializeObject(dtos)
-                val json = dto.message
-                val response = HttpResponse(401, "")
-                response
             case Right(events) =>
-                val result = events.map(e => PlaceOrderEventDto.fromDomain(e)).toArray
-                // FIXME Add Deserialization here
-                //let json = JsonConvert.SerializeObject(dto )
-                val response = HttpResponse(200, "")
-                response
+                val placeOrderEvents = events.map(e => PlaceOrderEventDto.fromDomain(e))
+                HttpResponse(200, placeOrderEvents.mkString("\n"))
+            case Left(error) =>
+                val responseError = PlaceOrderErrorDto.fromDomain(error)
+                HttpResponse(401, responseError.message)
         }
     }
 
     def placeOrderApi : PlaceOrderApi = {
         request =>
-            // following the approach in "A Complete Serialization Pipeline" in chapter 11
+            val orderFormJson = request.body
+            val unvalidatedOrder =
+                decode[OrderFormDto](orderFormJson) match {
+                    case Left(errorMessage) => throw new Exception(errorMessage)
+                    case Right(orderFrom) =>
+                        OrderFormDto.toUnvalidatedOrder(orderFrom)
+                }
 
-            // start with a string
-            //let orderFormJson = request.Body
-            //let orderForm = JsonConvert.DeserializeObject<OrderFormDto>(orderFormJson)
-            // convert to domain object
-            //let unvalidatedOrder = orderForm |> OrderFormDto.toUnvalidatedOrder
+            val workflow =
+                placeOrder
+                checkProductExists // dependency
+                checkAddressExists // dependency
+                getProductPrice    // dependency
+                createOrderAcknowledgmentLetter  // dependency
+                sendOrderAcknowledgment // dependency
 
-            // setup the dependencies. See "Injecting Dependencies" in chapter 9
-            //let workflow =
-                //Implementation.placeOrder
-            checkProductExists // dependency
-            checkAddressExists // dependency
-            getProductPrice    // dependency
-            createOrderAcknowledgmentLetter  // dependency
-            sendOrderAcknowledgment // dependency
-
-            // now we are in the pure domain
-            //let asyncResult = workflow unvalidatedOrder
-
-            // now convert from the pure domain back to a HttpResponse
-            //asyncResult
-            //|> Async.map (workflowResultToHttpResponse)
-            ???
-
+            val response = workflowResultToHttpResponse(workflow.apply(unvalidatedOrder))
+            response
     }
 }

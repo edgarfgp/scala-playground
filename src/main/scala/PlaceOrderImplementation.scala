@@ -31,7 +31,6 @@ object PlaceOrderImplementation {
 
     // Product validation
 
-
     type CheckProductCodeExists = ProductCode => Boolean
 
     // Address validation

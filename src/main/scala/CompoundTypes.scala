@@ -1,6 +1,6 @@
 import SimpleTypes._
 
-package object CompoundTypes {
+object CompoundTypes {
 
     // ==================================
     // Common compound types used throughout the OrderTaking domain

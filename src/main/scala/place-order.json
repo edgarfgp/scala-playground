@@ -1,0 +1,31 @@
+{
+  "orderId" : "ASD123",
+  "customerInfo" : {
+    "firstName" : "Edgar",
+    "lastName" : "Gonzalez",
+    "emailAddress" : "example@gmail.com"
+  },
+  "shippingAddress" : {
+    "addressLine1" : "line 1",
+    "addressLine2" : "line 2",
+    "addressLine3" : "line 3",
+    "addressLine4" : "line 4",
+    "city": "Albacete",
+    "zipCode" : "02006"
+  },
+  "billingAddress" : {
+    "addressLine1" : "line 1",
+    "addressLine2" : "line 2",
+    "addressLine3" : "line 3",
+    "addressLine4" : "line 4",
+    "city": "Albacete",
+    "zipCode" : "02006"
+  },
+  "lines" : [
+    {
+      "orderLineId" : "ASD123",
+      "productCode": "Aweerrt",
+      "quantity" : 20.6
+    }
+  ]
+}

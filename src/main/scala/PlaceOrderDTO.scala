@@ -3,6 +3,8 @@ import PublicTypes.PlaceOrderError.{Pricing, RemoteService, Validation}
 import PublicTypes.PlaceOrderEvent.{AcknowledgmentSentEvent, BillableOrderPlacedEvent, OrderPlacedEvent}
 import PublicTypes._
 import SimpleTypes.{OrderQuantity, ProductCode}
+import io.circe.Decoder
+import io.circe.generic.semiauto.deriveDecoder
 
 object PlaceOrderDTO {
 
