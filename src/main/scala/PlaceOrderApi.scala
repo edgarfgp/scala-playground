@@ -2,12 +2,16 @@ import PlaceOrderDTO.{OrderFormDto, PlaceOrderErrorDto, PlaceOrderEventDto}
 import PlaceOrderImplementation.SendResult.Sent
 import PlaceOrderImplementation._
 import PublicTypes.{PlaceOrderError, PlaceOrderEvent}
-import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
-import io.circe.{ Decoder, Encoder }, io.circe.generic.semiauto._
+import io.circe._
+import io.circe.generic.auto._
+import io.circe.parser._
+import io.circe.syntax._
+import io.circe.{Decoder, Encoder}
+import io.circe.generic.semiauto._
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto._
 
-
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.io.Source
 
@@ -87,13 +91,12 @@ object PlaceOrderApi {
 
             val workflow =
                 placeOrder
-                checkProductExists // dependency
-                checkAddressExists // dependency
-                getProductPrice    // dependency
-                createOrderAcknowledgmentLetter  // dependency
-                sendOrderAcknowledgment // dependency
+                checkProductExists
+                checkAddressExists
+                getProductPrice
+                createOrderAcknowledgmentLetter
+                sendOrderAcknowledgment
 
-            val response = workflowResultToHttpResponse(workflow.apply(unvalidatedOrder))
-            response
+            workflowResultToHttpResponse(workflow.apply(unvalidatedOrder))
     }
 }

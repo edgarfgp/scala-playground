@@ -1,5 +1,5 @@
 import CompoundTypes.{Address, CustomerInfo}
-import SimpleTypes.{BillingAmount, EmailAddress, OrderId, OrderLineId, OrderQuantity, PdfAttachment, Price, ProductCode}
+import SimpleTypes._
 
 import java.net.URI
 
