@@ -4,15 +4,6 @@ import SimpleTypes._
 import java.net.URI
 
 package object PublicTypes {
-
-    // ==================================
-    // This file contains the definitions of PUBLIC types (exposed at the boundary of the bounded context)
-    // related to the PlaceOrder workflow
-    // ==================================
-
-    // ------------------------------------
-    // inputs to the workflow
-
     final case class UnvalidatedCustomerInfo(
         firstName : String,
         lastName : String,
@@ -38,14 +29,8 @@ package object PublicTypes {
         billingAddress : UnvalidatedAddress,
         lines : List[UnvalidatedOrderLine])
 
-    // ------------------------------------
-    // outputs from the workflow (success case)
-
-    /// Event will be created if the Acknowledgment was successfully posted
     final case class OrderAcknowledgmentSent(orderId : OrderId, emailAddress : EmailAddress)
 
-
-    // priced state
     final case class PricedOrderLine(
         orderLineId : OrderLineId,
         productCode : ProductCode,
@@ -59,30 +44,23 @@ package object PublicTypes {
         billingAddress : Address,
         amountToBill : BillingAmount,
         lines : List[PricedOrderLine])
-    /// Event to send to shipping context
-
-
-    type OrderPlaced = PricedOrder
 
     final case class BillableOrderPlaced(
         orderId : OrderId,
         billingAddress: Address,
         amountToBill : BillingAmount)
 
-    /// The possible events resulting from the PlaceOrder workflow
-    /// Not all events will occur, depending on the logic of the workflow
     sealed trait PlaceOrderEvent
 
     object PlaceOrderEvent {
 
-        final case class OrderPlacedEvent(event : OrderPlaced) extends PlaceOrderEvent
+        final case class OrderPlacedEvent(event : PricedOrder) extends PlaceOrderEvent
 
         final case class BillableOrderPlacedEvent(event : BillableOrderPlaced) extends PlaceOrderEvent
 
         final case class AcknowledgmentSentEvent(event : OrderAcknowledgmentSent) extends PlaceOrderEvent
     }
 
-    /// All the things that can go wrong in this workflow
     type ValidationError = String
 
     type PricingError = String
@@ -92,6 +70,7 @@ package object PublicTypes {
     final case class RemoteServiceError(service : ServiceInfo, exception : Exception)
 
     sealed trait PlaceOrderError
+
     object PlaceOrderError {
 
         final case class Validation(error : ValidationError) extends PlaceOrderError
@@ -101,8 +80,6 @@ package object PublicTypes {
         final case class RemoteService(error : RemoteServiceError) extends PlaceOrderError
     }
 
-    // ------------------------------------
-    // the workflow itself
     type PlaceOrder = UnvalidatedOrder => Either[PlaceOrderError, List[PlaceOrderEvent]]
 
     type PlaceOrderWithoutEffects =
