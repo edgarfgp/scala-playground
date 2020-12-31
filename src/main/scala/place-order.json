@@ -3,7 +3,8 @@
   "customerInfo" : {
     "firstName" : "Edgar",
     "lastName" : "Gonzalez",
-    "emailAddress" : "example@gmail.com"
+    "emailAddress" : "example@gmail.com",
+    "vipStatus" : "Vip"
   },
   "shippingAddress" : {
     "addressLine1" : "line 1",

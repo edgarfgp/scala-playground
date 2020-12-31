@@ -7,7 +7,8 @@ package object PublicTypes {
     final case class UnvalidatedCustomerInfo(
         firstName : String,
         lastName : String,
-        emailAddress : String)
+        emailAddress : String,
+        vipStatus: String)
 
     final case class UnvalidatedAddress(
         addressLine1 : String,
@@ -17,7 +18,7 @@ package object PublicTypes {
         city : String,
         zipCode : String,
         country: String,
-        state: String)
+        state: UsStateCode)
 
     final case class UnvalidatedOrderLine(
         orderLineId : String,
@@ -45,14 +46,12 @@ package object PublicTypes {
         shippingAddress : Address,
         billingAddress : Address,
         amountToBill : BillingAmount,
-        lines : List[PricedOrderLine],
-        )
+        lines : List[PricedOrderLine])
 
     final case class BillableOrderPlaced(
         orderId : OrderId,
         billingAddress: Address,
         amountToBill : BillingAmount)
-
 
     sealed trait PlaceOrderEvent
 

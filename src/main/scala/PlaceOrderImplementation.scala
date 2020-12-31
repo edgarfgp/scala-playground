@@ -35,10 +35,11 @@ object PlaceOrderImplementation {
 
     def toCustomerInfo(unvalidatedCustomerInfo : UnvalidatedCustomerInfo) : Either[ValidationError, CustomerInfo] = {
         for {
-            firstName <- String50.create("FirstName", unvalidatedCustomerInfo.firstName)
-            lastName <- String50.create("LastName", unvalidatedCustomerInfo.lastName)
-            emailAddress <- EmailAddress.create("EmailAddress", unvalidatedCustomerInfo.emailAddress)
-            customerInfo = CustomerInfo(PersonalName(firstName,lastName), emailAddress)
+            firstName <- String50.create("firstName", unvalidatedCustomerInfo.firstName)
+            lastName <- String50.create("lastName", unvalidatedCustomerInfo.lastName)
+            emailAddress <- EmailAddress.create("emailAddress", unvalidatedCustomerInfo.emailAddress)
+            vipStatus <- VipStatus.create("vipStatus", unvalidatedCustomerInfo.vipStatus)
+            customerInfo = CustomerInfo(PersonalName(firstName,lastName), emailAddress, vipStatus)
         } yield  customerInfo
     }
 
@@ -95,10 +96,15 @@ object PlaceOrderImplementation {
         }
     }
 
-    type PriceOrder =
-        GetProductPrice
-            => ValidatedOrder
-            => Either[PricingError, PricedOrder]
+    def freeVipShipping : FreeVipShipping = {
+        order =>
+            val updatedShippingInfo = order.pricedOrder.customerInfo.vipStatus match {
+                case VipStatus.Normal => order.shippingInfo
+                case VipStatus.Vip => order.shippingInfo.copy(shippingCost =  Price.unsafeCreate(0.0), shippingMethod = Fedex24)
+            }
+
+            order.copy(shippingInfo = updatedShippingInfo)
+    }
 
     def priceOrder: PriceOrder = {
         getProductPrice => validatedOrder =>
@@ -158,7 +164,7 @@ object PlaceOrderImplementation {
                         priceOrder(getProductPrice)(validatedOrder) match {
                             case Left(pricingError) => Left(Pricing(pricingError))
                             case Right(pricedOrder) =>
-                                val pricedOrderWithShipping = addShippingInfoToOrder(calculateShippingCost)(pricedOrder)
+                                val pricedOrderWithShipping = freeVipShipping(addShippingInfoToOrder()(calculateShippingCost)(pricedOrder))
                                 val acknowledgementOption =
                                     acknowledgeOrder(createOrderAcknowledgmentLetter)(sendOrderAcknowledgment)(pricedOrderWithShipping)
                                 val events = createEvents(pricedOrder) (acknowledgementOption)
@@ -191,7 +197,7 @@ object PlaceOrderImplementation {
             else Price.unsafeCreate(20.0)
     }
 
-    def addShippingInfoToOrder : AddShippingInfoToOrder = {
+    def addShippingInfoToOrder() : AddShippingInfoToOrder = {
         calculateShippingCost => pricedOrder =>
             val shippingCost = calculateShippingCost(pricedOrder)
             val shippingInfo = ShippingInfo(Fedex24, shippingCost)

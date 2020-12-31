@@ -4,7 +4,7 @@ object CompoundTypes {
 
     final case class PersonalName(firstName : String50, lastName : String50)
 
-    final case class CustomerInfo(name : PersonalName, emailAddress : EmailAddress)
+    final case class CustomerInfo(name : PersonalName, emailAddress : EmailAddress, vipStatus: VipStatus)
 
     final case class Address(
         addressLine1 : String50,
@@ -14,7 +14,7 @@ object CompoundTypes {
         city : String50,
         zipCode : ZipCode,
         country: String,
-        state: String)
+        state: UsStateCode)
 
     final case class ValidatedOrderLine(
         orderLineId : OrderLineId,

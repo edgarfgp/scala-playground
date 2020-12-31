@@ -1,8 +1,9 @@
 import CompoundTypes.{Address, CustomerInfo, PersonalName}
+import InternalTypes.PlaceOrderEventDto
 import PublicTypes.PlaceOrderError.{Pricing, RemoteService, Validation}
 import PublicTypes.PlaceOrderEvent.{AcknowledgmentSentEvent, BillableOrderPlacedEvent, OrderPlacedEvent}
 import PublicTypes._
-import SimpleTypes.{OrderQuantity, ProductCode}
+import SimpleTypes.{OrderQuantity, ProductCode, UsStateCode, VipStatus}
 
 object PlaceOrderDTO {
 
@@ -19,23 +20,27 @@ object PlaceOrderDTO {
         }
     }
 
-    final case class CustomerInfoDto(firstName : String, lastName : String, emailAddress : String)
+    final case class CustomerInfoDto(firstName : String, lastName : String, emailAddress : String, vipStatus: String)
 
     object CustomerInfoDto {
-        def toUnvalidatedCustomerInfo (dto: CustomerInfoDto) : UnvalidatedCustomerInfo =
-            UnvalidatedCustomerInfo(dto.firstName, dto.lastName, dto.emailAddress)
+        def toUnvalidatedCustomerInfo (dto: CustomerInfoDto) : UnvalidatedCustomerInfo = {
+            UnvalidatedCustomerInfo(dto.firstName, dto.lastName, dto.emailAddress, dto.vipStatus)
+        }
 
         def toCustomerInfo (dto:CustomerInfoDto) :Either[String, CustomerInfo] =
             for {
-                first <- String50.create("FirstName", dto.firstName)
-                last <- String50.create("LastName", dto.lastName)
-                email <- EmailAddress.create("EmailAddress", dto.emailAddress)
+                first <- String50.create("firstName", dto.firstName)
+                last <- String50.create("lastName", dto.lastName)
+                email <- EmailAddress.create("emailAddress", dto.emailAddress)
                 name = PersonalName(first,last)
-                info = CustomerInfo(name, email)
+                vipStatus <- VipStatus.create("vipStatus", dto.vipStatus)
+                info = CustomerInfo(name, email, vipStatus)
             } yield info
 
-        def fromCustomerInfo (domainObj: CustomerInfo) :CustomerInfoDto =
-            CustomerInfoDto(domainObj.name.firstName, domainObj.name.lastName, domainObj.emailAddress)
+        def fromCustomerInfo (domainObj: CustomerInfo) :CustomerInfoDto = {
+            val vipStatus = VipStatus.value(domainObj.vipStatus)
+            CustomerInfoDto(domainObj.name.firstName, domainObj.name.lastName, domainObj.emailAddress, vipStatus)
+        }
     }
 
     final case class AddressDto(
@@ -46,7 +51,7 @@ object PlaceOrderDTO {
         city : String,
         zipCode : String,
         country: String,
-        state: String)
+        state: UsStateCode)
 
     object AddressDto {
 
@@ -166,8 +171,6 @@ object PlaceOrderDTO {
         def fromDomain(domainObj:OrderAcknowledgmentSent) : OrderAcknowledgmentSentDto =
             OrderAcknowledgmentSentDto(domainObj.orderId, domainObj.emailAddress)
     }
-
-    type PlaceOrderEventDto = Map[String, Object]
 
     object PlaceOrderEventDto {
 

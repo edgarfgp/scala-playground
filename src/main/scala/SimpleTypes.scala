@@ -24,6 +24,27 @@ object SimpleTypes {
 
     type GizmoCode = String
 
+    type UsStateCode = String
+
+    sealed trait VipStatus
+    object VipStatus {
+
+        final object Normal extends VipStatus
+
+        final object Vip extends VipStatus
+
+        def value(status: VipStatus): String = status match {
+            case Normal => "Normal"
+            case Vip =>"VIP"
+        }
+
+        def create(fieldName: String, str: String) : Either[String, VipStatus] = str match {
+            case "normal" | "Normal" => Right(Normal)
+            case "vip" | "VIP" | "Vip" => Right(Vip)
+            case _ => Left(s"$fieldName: Must be one of 'Normal', 'VIP'")
+        }
+    }
+
     sealed trait ProductCode
 
     object ProductCode {
