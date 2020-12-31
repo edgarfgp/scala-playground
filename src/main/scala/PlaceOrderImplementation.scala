@@ -1,11 +1,11 @@
-import CompoundTypes.{Address, CustomerInfo, OrderAcknowledgment, PersonalName, ValidatedOrder, ValidatedOrderLine}
-import InternalTypes.{AcknowledgeOrder, AddShippingInfoToOrder, CalculateShippingCost, CheckAddressExists, CheckProductCodeExists, CreateEvents, CreateOrderAcknowledgmentLetter, GetProductPrice, PlaceOrder, SendOrderAcknowledgment, ValidateOrder}
+import CompoundTypes._
+import InternalTypes._
 import PlaceOrderDTO.Utils.listOfOption
-import PlaceOrderImplementation.AddressValidationError.{AddressNotFound, InvalidFormat}
-import PlaceOrderImplementation.SendResult.{NotSent, Sent}
-import PublicTypes.PlaceOrderError.{Pricing, Validation}
-import PublicTypes.PlaceOrderEvent.{AcknowledgmentSentEvent, BillableOrderPlacedEvent, OrderPlacedEvent}
-import PublicTypes.ShippingMethod.Fedex24
+import PlaceOrderImplementation.AddressValidationError._
+import PlaceOrderImplementation.SendResult._
+import PublicTypes.PlaceOrderError._
+import PublicTypes.PlaceOrderEvent._
+import PublicTypes.ShippingMethod._
 import PublicTypes._
 import SimpleTypes._
 
@@ -161,7 +161,7 @@ object PlaceOrderImplementation {
                                 val pricedOrderWithShipping = addShippingInfoToOrder(calculateShippingCost)(pricedOrder)
                                 val acknowledgementOption =
                                     acknowledgeOrder(createOrderAcknowledgmentLetter)(sendOrderAcknowledgment)(pricedOrderWithShipping)
-                                val events = createEvents(pricedOrder)(acknowledgementOption)
+                                val events = createEvents(pricedOrder) (acknowledgementOption)
                                 Right(events)
                         }
                 }

@@ -45,7 +45,8 @@ package object PublicTypes {
         shippingAddress : Address,
         billingAddress : Address,
         amountToBill : BillingAmount,
-        lines : List[PricedOrderLine])
+        lines : List[PricedOrderLine],
+        )
 
     final case class BillableOrderPlaced(
         orderId : OrderId,

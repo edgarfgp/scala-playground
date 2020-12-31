@@ -26,8 +26,7 @@ object PlaceOrderApi {
     def calculateShippingCost : CalculateShippingCost = PlaceOrderImplementation.calculateShippingCost
 
     private def runWorkflow =
-        PlaceOrderImplementation.placeOrder(
-            checkProductExists,
+        PlaceOrderImplementation.placeOrder(checkProductExists,
             checkAddressExists,
             getProductPrice,
             calculateShippingCost,
