@@ -12,6 +12,11 @@ object PlaceOrderDTO {
                 case Some(value) => value
                 case None => defaultValue
             }
+
+        def listOfOption[A](option: Option[A]) : List[A] = option match {
+            case Some(value) => List(value)
+            case None =>List()
+        }
     }
 
     final case class CustomerInfoDto(firstName : String, lastName : String, emailAddress : String)
@@ -39,29 +44,47 @@ object PlaceOrderDTO {
         addressLine3 : String,
         addressLine4 : String,
         city : String,
-        zipCode : String)
+        zipCode : String,
+        country: String,
+        state: String)
 
     object AddressDto {
 
         def toUnvalidatedAddress(dto: AddressDto): UnvalidatedAddress =
-            UnvalidatedAddress(dto.addressLine1, dto.addressLine2, dto.addressLine3, dto.addressLine4, dto.city, dto.zipCode)
+            UnvalidatedAddress(dto.addressLine1,
+                dto.addressLine2,
+                dto.addressLine3,
+                dto.addressLine4,
+                dto.city,
+                dto.zipCode,
+                dto.country,
+                dto.state)
 
         def toAddress(dto: AddressDto) :Either[String, Address] =
             for {
-                addressLine1 <- String50.create("AddressLine1", dto.addressLine1)
-                addressLine2 <- String50.createOption("AddressLine2", dto.addressLine2)
-                addressLine3 <- String50.createOption("AddressLine3", dto.addressLine3)
-                addressLine4 <- String50.createOption("AddressLine4", dto.addressLine4)
-                city <- String50.create("City", dto.city)
-                zipCode <- ZipCode.create("ZipCode", dto.zipCode)
-                address = Address(addressLine1, addressLine2, addressLine3, addressLine4, city, zipCode)
+                addressLine1 <- String50.create("addressLine1", dto.addressLine1)
+                addressLine2 <- String50.createOption("addressLine2", dto.addressLine2)
+                addressLine3 <- String50.createOption("addressLine3", dto.addressLine3)
+                addressLine4 <- String50.createOption("addressLine4", dto.addressLine4)
+                city <- String50.create("city", dto.city)
+                zipCode <- ZipCode.create("zipCode", dto.zipCode)
+                country <-  String50.create("country", dto.country)
+                state <- UsStateCode.create("state", dto.state)
+                address = Address(addressLine1, addressLine2, addressLine3, addressLine4, city, zipCode, country, state)
             } yield address
 
         def fromAddress(domainObj: Address) : AddressDto = {
             val addressLine2 =  Utils.defaultIfNone(null, domainObj.addressLine2)
             val addressLine3 =  Utils.defaultIfNone(null, domainObj.addressLine3)
             val addressLine4 =  Utils.defaultIfNone(null, domainObj.addressLine4)
-            AddressDto(domainObj.addressLine1, addressLine2, addressLine3, addressLine4, domainObj.city, domainObj.zipCode)
+            AddressDto(domainObj.addressLine1,
+                addressLine2,
+                addressLine3,
+                addressLine4,
+                domainObj.city,
+                domainObj.zipCode,
+                domainObj.country,
+                domainObj.state)
         }
     }
 

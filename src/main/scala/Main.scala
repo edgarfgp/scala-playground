@@ -1,4 +1,5 @@
-import PlaceOrderApi.HttpRequest
+import PlaceOrderApi.{HttpRequest, placeOrderApi}
+
 import scala.io.Source
 
 object Main {
@@ -7,7 +8,7 @@ object Main {
         val filename = "src/main/scala/place-order.json"
         val source = Source.fromFile(filename)
         val responseBody = try source.mkString finally source.close()
-        val result = PlaceOrderApi.placeOrderApi.apply(HttpRequest("GET", "https://myorders.com/placeOrders", responseBody))
+        val result = placeOrderApi(HttpRequest("GET", "https://myorders.com/placeOrders", responseBody))
         println(result)
     }
 }
