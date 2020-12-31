@@ -1,9 +1,16 @@
+import PublicTypes.UnvalidatedAddress
 import SimpleTypes.ProductCode.{Gizmo, Widget}
 import SimpleTypes.{KilogramQuantity, UnitQuantity, _}
 
 object SimpleTypes {
 
     type String50 = String
+
+    type JsonString = String
+
+    type HtmlString = String
+
+    type CheckedAddress = UnvalidatedAddress
 
     type EmailAddress = String
 
@@ -193,4 +200,12 @@ object BillingAmount {
     def create(v: BigDecimal): Either[String, BillingAmount] = ConstrainedType.createDecimal("BillingAmount", 0.0, 10000, v)
 
     def sumPrices(prices: List[Price]): Either[String, BillingAmount] = create(prices.sum)
+}
+
+object UsStateCode {
+
+    def create(fieldName: String, str: String) = {
+        val pattern = "^(A[KLRZ]|C[AOT]|D[CE]|FL|GA|HI|I[ADLN]|K[SY]|LA|M[ADEINOST]|N[CDEHJMVY]|O[HKR]|P[AR]|RI|S[CD]|T[NX]|UT|V[AIT]|W[AIVY])$"
+        ConstrainedType.createLike(fieldName, pattern, str)
+    }
 }

@@ -11,7 +11,9 @@
     "addressLine3" : "line 3",
     "addressLine4" : "line 4",
     "city": "Albacete",
-    "zipCode" : "02006"
+    "zipCode" : "02006",
+    "country": "US",
+    "state": "CA"
   },
   "billingAddress" : {
     "addressLine1" : "line 1",
@@ -19,7 +21,9 @@
     "addressLine3" : "line 3",
     "addressLine4" : "line 4",
     "city": "Albacete",
-    "zipCode" : "02006"
+    "zipCode" : "02006",
+    "country": "US",
+    "state": "CA"
   },
   "lines" : [
     {

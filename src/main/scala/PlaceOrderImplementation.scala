@@ -1,15 +1,15 @@
-import CompoundTypes.{Address, CustomerInfo, PersonalName}
-import PlaceOrderApi._
+import CompoundTypes.{Address, CustomerInfo, OrderAcknowledgment, PersonalName, ValidatedOrder, ValidatedOrderLine}
+import InternalTypes.{AcknowledgeOrder, AddShippingInfoToOrder, CalculateShippingCost, CheckAddressExists, CheckProductCodeExists, CreateEvents, CreateOrderAcknowledgmentLetter, GetProductPrice, PlaceOrder, SendOrderAcknowledgment, ValidateOrder}
+import PlaceOrderDTO.Utils.listOfOption
 import PlaceOrderImplementation.AddressValidationError.{AddressNotFound, InvalidFormat}
 import PlaceOrderImplementation.SendResult.{NotSent, Sent}
 import PublicTypes.PlaceOrderError.{Pricing, Validation}
 import PublicTypes.PlaceOrderEvent.{AcknowledgmentSentEvent, BillableOrderPlacedEvent, OrderPlacedEvent}
+import PublicTypes.ShippingMethod.Fedex24
 import PublicTypes._
 import SimpleTypes._
 
 object PlaceOrderImplementation {
-
-    type CheckProductCodeExists = ProductCode => Boolean
 
     sealed trait AddressValidationError
     object AddressValidationError {
@@ -17,43 +17,21 @@ object PlaceOrderImplementation {
         final object AddressNotFound extends  AddressValidationError
     }
 
-    type CheckedAddress = UnvalidatedAddress
-
-    final case class ValidatedOrderLine(
-        orderLineId : OrderLineId,
-        productCode : ProductCode,
-        quantity : OrderQuantity)
-
-    final case class ValidatedOrder(
-        orderId : OrderId,
-        customerInfo : CustomerInfo,
-        shippingAddress : Address,
-        billingAddress : Address,
-        lines : List[ValidatedOrderLine])
-
-    type GetProductPrice = ProductCode => Price
-
-    type HtmlString = String
-
-    final case class OrderAcknowledgment(
-        emailAddress : EmailAddress,
-        letter : HtmlString)
-
-    type CreateOrderAcknowledgmentLetter =
-        PricedOrder => HtmlString
-
     sealed trait SendResult
     object SendResult {
         final object Sent extends SendResult
         final object NotSent extends SendResult
     }
 
-    type SendOrderAcknowledgment = OrderAcknowledgment => SendResult
+    def checkProductExists: CheckProductCodeExists = _ => true
 
-    type CreateEvents =
-        PricedOrder// input
-        => Option[OrderAcknowledgmentSent]// input (event from previous step)
-        => List[PlaceOrderEvent]// output
+    def checkAddressExists: CheckAddressExists = unvalidatedAddress => Right(unvalidatedAddress)
+
+    def getProductPrice: GetProductPrice = _ => Price.unsafeCreate(1000000)
+
+    def createOrderAcknowledgmentLetter : CreateOrderAcknowledgmentLetter = _ =>  "some text"
+
+    def sendOrderAcknowledgment: SendOrderAcknowledgment = _ => Sent
 
     def toCustomerInfo(unvalidatedCustomerInfo : UnvalidatedCustomerInfo) : Either[ValidationError, CustomerInfo] = {
         for {
@@ -72,11 +50,10 @@ object PlaceOrderImplementation {
             addressLine4 <- String50.createOption("addressLine4", checkedAddress.addressLine4)
             city <- String50.create("city", checkedAddress.city)
             zipCode <- ZipCode.create("zipCode", checkedAddress.zipCode)
-        } yield Address(addressLine1, addressLine2, addressLine3, addressLine4, city, zipCode)
+            country <- String50.create("country", checkedAddress.country)
+            state <- UsStateCode.create("state", checkedAddress.state)
+        } yield Address(addressLine1, addressLine2, addressLine3, addressLine4, city, zipCode, country, state)
     }
-
-    type CheckAddressExists =
-        UnvalidatedAddress => Either[AddressValidationError, CheckedAddress]
 
 
     def  toCheckedAddress(checkAddressExists: CheckAddressExists, unvalidatedAddress: UnvalidatedAddress): Either[HtmlString, CheckedAddress] = checkAddressExists(unvalidatedAddress) match {
@@ -108,25 +85,6 @@ object PlaceOrderImplementation {
             quantity <- toOrderQuantity(productCode, unvalidatedOrderLine.quantity)
         } yield ValidatedOrderLine(orderLineId, productCode, quantity)
 
-    type ValidateOrder =
-        CheckProductCodeExists
-            => CheckAddressExists
-            => UnvalidatedOrder
-            => Either[ValidationError, ValidatedOrder]
-
-    def validateOrder : ValidateOrder =
-        checkProductCodeExists => checkAddressExists => unvalidatedOrder =>
-            for {
-                orderId <- toOrderId(unvalidatedOrder.orderId)
-                customerInfo <- toCustomerInfo(unvalidatedOrder.customerInfo)
-                checkedShippingAddress <- toCheckedAddress(checkAddressExists, unvalidatedOrder.shippingAddress)
-                checkedBillingAddress <- toCheckedAddress(checkAddressExists, unvalidatedOrder.billingAddress)
-                shippingAddress <- toAddress(checkedShippingAddress)
-                billingAddress <- toAddress(checkedBillingAddress)
-                eitherLines = unvalidatedOrder.lines.map(unvalidatedOrderLine => toValidatedOrderLine(checkProductCodeExists, unvalidatedOrderLine))
-                lines = eitherLines collect { case Right(validatedOrderLine) => validatedOrderLine }
-                validatedOrder = ValidatedOrder(orderId, customerInfo, shippingAddress, billingAddress, lines)
-            } yield validatedOrder
 
     def toPricedOrderLine(getProductPrice: GetProductPrice, validatedOrderLine: ValidatedOrderLine) : Either[PricingError, PricedOrderLine] = {
         val qty = OrderQuantity.value(validatedOrderLine.quantity)
@@ -161,22 +119,17 @@ object PlaceOrderImplementation {
         }
     }
 
-    type AcknowledgeOrder =
-        CreateOrderAcknowledgmentLetter
-            => SendOrderAcknowledgment
-            => PricedOrder
-            => Option[OrderAcknowledgmentSent]
-
     def acknowledgeOrder : AcknowledgeOrder = {
-        createOrderAcknowledgmentLetter => sendOrderAcknowledgment => pricedOrder =>
-        val letter = createOrderAcknowledgmentLetter(pricedOrder)
-        val acknowledgment = OrderAcknowledgment(pricedOrder.customerInfo.emailAddress, letter)
-        sendOrderAcknowledgment(acknowledgment) match {
-            case Sent =>
-                val event = OrderAcknowledgmentSent(pricedOrder.orderId, pricedOrder.customerInfo.emailAddress)
-                Some(event)
-            case NotSent => None
-        }
+        createOrderAcknowledgmentLetter => sendOrderAcknowledgment => pricedOrderWithShipping =>
+            val pricedOrder = pricedOrderWithShipping.pricedOrder
+            val letter = createOrderAcknowledgmentLetter(pricedOrder)
+            val acknowledgment = OrderAcknowledgment(pricedOrder.customerInfo.emailAddress, letter)
+            sendOrderAcknowledgment(acknowledgment) match {
+                case Sent =>
+                    val event = OrderAcknowledgmentSent(pricedOrder.orderId, pricedOrder.customerInfo.emailAddress)
+                    Some(event)
+                case NotSent => None
+            }
     }
 
     def createBillingEvent(placeOrder: PricedOrder) : Option[BillableOrderPlaced] =
@@ -184,12 +137,8 @@ object PlaceOrderImplementation {
             Some(BillableOrderPlaced(placeOrder.orderId, placeOrder.billingAddress, placeOrder.amountToBill))
         else None
 
-    def listOfOption[A](option: Option[A]) : List[A] = option match {
-            case Some(value) => List(value)
-            case None =>List()
-        }
-
-    def createEvents(pricedOrder: PricedOrder, orderAcknowledgmentSent: Option[OrderAcknowledgmentSent]): List[PlaceOrderEvent] = {
+    def createEvents : CreateEvents = {
+        pricedOrder => orderAcknowledgmentSent =>
         val orderPlacedEvents = List(OrderPlacedEvent(pricedOrder))
         val acknowledgmentEvents = listOfOption(orderAcknowledgmentSent.map(order => AcknowledgmentSentEvent(order)))
         val billingEvents = listOfOption(createBillingEvent(pricedOrder).map(bill => BillableOrderPlacedEvent(bill)))
@@ -198,18 +147,54 @@ object PlaceOrderImplementation {
         } yield result
     }
 
-    def placeOrder: PlaceOrder = {
-        unvalidatedOrder =>
-            validateOrder(checkProductExists : CheckProductCodeExists) (checkAddressExists : CheckAddressExists) (unvalidatedOrder : UnvalidatedOrder) match {
-                case Left(validationError) => Left(Validation(validationError))
-                case Right(validatedOrder) =>
-                    priceOrder(getProductPrice : GetProductPrice) (validatedOrder: ValidatedOrder) match {
-                        case Left(pricingError) => Left(Pricing(pricingError))
-                        case Right(pricedOrder) =>
-                            val acknowledgementOption = acknowledgeOrder(createOrderAcknowledgmentLetter : CreateOrderAcknowledgmentLetter)(sendOrderAcknowledgment: SendOrderAcknowledgment) (pricedOrder: PricedOrder)
-                            val events = createEvents(pricedOrder,acknowledgementOption)
-                            Right(events)
-                    }
-            }
+    def placeOrder(checkProductExists: CheckProductCodeExists, checkAddressExists: CheckAddressExists,
+        getProductPrice: GetProductPrice, calculateShippingCost: CalculateShippingCost,
+        createOrderAcknowledgmentLetter: CreateOrderAcknowledgmentLetter,
+        sendOrderAcknowledgment: SendOrderAcknowledgment): PlaceOrder = {
+            unvalidatedOrder =>
+                validateOrder(checkProductExists) (checkAddressExists) (unvalidatedOrder) match {
+                    case Left(validationError) => Left(Validation(validationError))
+                    case Right(validatedOrder) =>
+                        priceOrder(getProductPrice)(validatedOrder) match {
+                            case Left(pricingError) => Left(Pricing(pricingError))
+                            case Right(pricedOrder) =>
+                                val pricedOrderWithShipping = addShippingInfoToOrder(calculateShippingCost)(pricedOrder)
+                                val acknowledgementOption =
+                                    acknowledgeOrder(createOrderAcknowledgmentLetter)(sendOrderAcknowledgment)(pricedOrderWithShipping)
+                                val events = createEvents(pricedOrder) (acknowledgementOption)
+                                Right(events)
+                        }
+                }
         }
+
+    def validateOrder: ValidateOrder =
+        checkProductCodeExists => checkAddressExists => unvalidatedOrder =>
+            for {
+                orderId <- toOrderId(unvalidatedOrder.orderId)
+                customerInfo <- toCustomerInfo(unvalidatedOrder.customerInfo)
+                checkedShippingAddress <- toCheckedAddress(checkAddressExists, unvalidatedOrder.shippingAddress)
+                checkedBillingAddress <- toCheckedAddress(checkAddressExists, unvalidatedOrder.billingAddress)
+                shippingAddress <- toAddress(checkedShippingAddress)
+                billingAddress <- toAddress(checkedBillingAddress)
+                eitherLines = unvalidatedOrder.lines.map(unvalidatedOrderLine => toValidatedOrderLine(checkProductCodeExists, unvalidatedOrderLine))
+                lines = eitherLines collect { case Right(validatedOrderLine) => validatedOrderLine }
+                validatedOrder = ValidatedOrder(orderId, customerInfo, shippingAddress, billingAddress, lines)
+            } yield validatedOrder
+
+    def calculateShippingCost: CalculateShippingCost = {
+        priceOrder =>
+            val shippingAddress = priceOrder.shippingAddress
+            if(shippingAddress.country == "US") shippingAddress.state match {
+                case "CA" | "OR" | "AZ" | "NV" => Price.unsafeCreate(5.0)
+                case _ => Price.unsafeCreate(10.0)
+            }
+            else Price.unsafeCreate(20.0)
+    }
+
+    def addShippingInfoToOrder : AddShippingInfoToOrder = {
+        calculateShippingCost => pricedOrder =>
+            val shippingCost = calculateShippingCost(pricedOrder)
+            val shippingInfo = ShippingInfo(Fedex24, shippingCost)
+            PricedOrderWithShippingMethod(shippingInfo, pricedOrder)
+    }
 }

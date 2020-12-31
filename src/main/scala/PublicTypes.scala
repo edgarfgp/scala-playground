@@ -15,7 +15,9 @@ package object PublicTypes {
         addressLine3 : String,
         addressLine4 : String,
         city : String,
-        zipCode : String)
+        zipCode : String,
+        country: String,
+        state: String)
 
     final case class UnvalidatedOrderLine(
         orderLineId : String,
@@ -43,12 +45,14 @@ package object PublicTypes {
         shippingAddress : Address,
         billingAddress : Address,
         amountToBill : BillingAmount,
-        lines : List[PricedOrderLine])
+        lines : List[PricedOrderLine],
+        )
 
     final case class BillableOrderPlaced(
         orderId : OrderId,
         billingAddress: Address,
         amountToBill : BillingAmount)
+
 
     sealed trait PlaceOrderEvent
 
@@ -80,9 +84,16 @@ package object PublicTypes {
         final case class RemoteService(error : RemoteServiceError) extends PlaceOrderError
     }
 
-    type PlaceOrder = UnvalidatedOrder => Either[PlaceOrderError, List[PlaceOrderEvent]]
+    sealed trait ShippingMethod
 
-    type PlaceOrderWithoutEffects =
-        UnvalidatedOrder => List[PlaceOrderEvent]
+    object ShippingMethod {
+        final object PostalService extends ShippingMethod
+        final object Fedex24 extends ShippingMethod
+        final object Fedex48 extends ShippingMethod
+        final object Ups48 extends ShippingMethod
+    }
 
+    final case class ShippingInfo(shippingMethod: ShippingMethod, shippingCost: Price)
+
+    final case class PricedOrderWithShippingMethod(shippingInfo: ShippingInfo, pricedOrder: PricedOrder)
 }

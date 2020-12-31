@@ -1,56 +1,56 @@
+import InternalTypes.{CalculateShippingCost, CheckAddressExists, CheckProductCodeExists, CreateOrderAcknowledgmentLetter, GetProductPrice, SendOrderAcknowledgment}
+import PlaceOrderDTO.OrderFormDto.toUnvalidatedOrder
 import PlaceOrderDTO.{OrderFormDto, PlaceOrderErrorDto, PlaceOrderEventDto}
-import PlaceOrderImplementation.SendResult.Sent
 import PlaceOrderImplementation._
 import PublicTypes.{PlaceOrderError, PlaceOrderEvent}
+import SimpleTypes.JsonString
 import io.circe.generic.auto._
 import io.circe.parser._
 
 object PlaceOrderApi {
-    type JsonString = String
 
     final case class HttpRequest(action : String, uri : String, body : JsonString)
 
     final case class HttpResponse(httpStatusCode : Integer, body : JsonString)
 
-    type PlaceOrderApi = HttpRequest => HttpResponse
+    def checkProductExists: CheckProductCodeExists = PlaceOrderImplementation.checkProductExists
 
-    def checkProductExists : CheckProductCodeExists = _ => true
+    def checkAddressExists: CheckAddressExists = PlaceOrderImplementation.checkAddressExists
 
-    def checkAddressExists : CheckAddressExists = unvalidatedAddress => Right(unvalidatedAddress)
+    def getProductPrice: GetProductPrice = PlaceOrderImplementation.getProductPrice
 
-    def getProductPrice: PlaceOrderImplementation.GetProductPrice = _ => Price.unsafeCreate(1000000)
+    def createOrderAcknowledgmentLetter : CreateOrderAcknowledgmentLetter = PlaceOrderImplementation.createOrderAcknowledgmentLetter
 
-    def createOrderAcknowledgmentLetter : CreateOrderAcknowledgmentLetter = _ =>  "some text"
+    def sendOrderAcknowledgment: SendOrderAcknowledgment = PlaceOrderImplementation.sendOrderAcknowledgment
 
-    def sendOrderAcknowledgment: SendOrderAcknowledgment = _ => Sent
+    def calculateShippingCost : CalculateShippingCost = PlaceOrderImplementation.calculateShippingCost
 
-    def workflowResultToHttpResponse(result : Either[PlaceOrderError, List[PlaceOrderEvent]]): HttpResponse = result match {
-            case Right(events) =>
-                val placeOrderEvents = events.map(e => PlaceOrderEventDto.fromDomain(e))
-                HttpResponse(200, placeOrderEvents.mkString("\n"))
-            case Left(error) =>
-                val responseError = PlaceOrderErrorDto.fromDomain(error)
-                HttpResponse(401, responseError.message)
-        }
+    private def runWorkflow =
+        PlaceOrderImplementation.placeOrder(checkProductExists,
+            checkAddressExists,
+            getProductPrice,
+            calculateShippingCost,
+            createOrderAcknowledgmentLetter,
+            sendOrderAcknowledgment)
 
-    def placeOrderApi : PlaceOrderApi = {
-        request =>
-            val orderFormJson = request.body
-            val unvalidatedOrder =
-                decode[OrderFormDto](orderFormJson) match {
-                    case Left(errorMessage) => throw new Exception(errorMessage)
-                    case Right(orderFrom) =>
-                        OrderFormDto.toUnvalidatedOrder(orderFrom)
-                }
+    def placeOrderApi(request: HttpRequest): HttpResponse = {
+        val orderFormJson = request.body
+        val unvalidatedOrder =
+            decode[OrderFormDto](orderFormJson) match {
+                case Left(errorMessage) => throw new Exception(errorMessage)
+                case Right(orderFrom) =>
+                    toUnvalidatedOrder(orderFrom)
+            }
 
-            val workflow =
-                placeOrder
-                checkProductExists
-                checkAddressExists
-                getProductPrice
-                createOrderAcknowledgmentLetter
-                sendOrderAcknowledgment
-
-            workflowResultToHttpResponse(workflow(unvalidatedOrder))
+        val workflowResult = runWorkflow(unvalidatedOrder)
+        processWorkflowResult(workflowResult)
+    }
+    private def processWorkflowResult(result : Either[PlaceOrderError, List[PlaceOrderEvent]]): HttpResponse = result match {
+        case Right(events) =>
+            val placeOrderEvents = events.map(e => PlaceOrderEventDto.fromDomain(e))
+            HttpResponse(200, placeOrderEvents.mkString("\n"))
+        case Left(error) =>
+            val responseError = PlaceOrderErrorDto.fromDomain(error)
+            HttpResponse(401, responseError.message)
     }
 }
