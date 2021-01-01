@@ -1,9 +1,10 @@
-import CompoundTypes.{Address, CustomerInfo, PersonalName}
-import InternalTypes.PlaceOrderEventDto
-import PublicTypes.PlaceOrderError.{Pricing, RemoteService, Validation}
-import PublicTypes.PlaceOrderEvent.{AcknowledgmentSentEvent, BillableOrderPlacedEvent, OrderPlacedEvent}
+import CompoundTypes._
+import InternalTypes._
+import PublicTypes.PlaceOrderError._
+import PublicTypes.PlaceOrderEvent._
 import PublicTypes._
-import SimpleTypes.{OrderQuantity, ProductCode, UsStateCode, VipStatus}
+import SimpleTypes.PricedOrderLine._
+import SimpleTypes._
 
 object PlaceOrderDTO {
 
@@ -23,9 +24,9 @@ object PlaceOrderDTO {
     final case class CustomerInfoDto(firstName : String, lastName : String, emailAddress : String, vipStatus: String)
 
     object CustomerInfoDto {
-        def toUnvalidatedCustomerInfo (dto: CustomerInfoDto) : UnvalidatedCustomerInfo = {
+
+        def toUnvalidatedCustomerInfo (dto: CustomerInfoDto) : UnvalidatedCustomerInfo =
             UnvalidatedCustomerInfo(dto.firstName, dto.lastName, dto.emailAddress, dto.vipStatus)
-        }
 
         def toCustomerInfo (dto:CustomerInfoDto) :Either[String, CustomerInfo] =
             for {
@@ -96,23 +97,28 @@ object PlaceOrderDTO {
     final case class OrderFormLineDto(orderLineId : String, productCode : String, quantity : BigDecimal)
 
     object OrderLineDto {
-        def toUnvalidatedOrderLine(dto: OrderFormLineDto) : UnvalidatedOrderLine = {
+        def toUnvalidatedOrderLine(dto: OrderFormLineDto) : UnvalidatedOrderLine =
             UnvalidatedOrderLine(dto.orderLineId, dto.productCode, dto.quantity)
-        }
     }
 
     final case class PricedOrderLineDto(
         orderLineId : String,
         productCode : String,
         quantity : BigDecimal,
-        linePrice : BigDecimal)
+        linePrice : BigDecimal,
+        comment : String)
 
     object PricedOrderLineDto {
-        def fromDomain(domainObj: PricedOrderLine): PricedOrderLineDto = {
-            val productCode = ProductCode.value(domainObj.productCode)
-            val quantity = OrderQuantity.value(domainObj.quantity)
-            PricedOrderLineDto(domainObj.orderLineId, productCode, quantity, domainObj.linePrice)
-        }
+        def fromDomain(domainObj: PricedOrderLine): PricedOrderLineDto =
+            domainObj match {
+                case ProductLine(productLine) =>
+                    val productCode = ProductCode.value(productLine.productCode)
+                    val quantity = OrderQuantity.value(productLine.quantity)
+                    PricedOrderLineDto(productLine.orderLineId, productCode, quantity, productLine.linePrice, "")
+                case CommentLine(comment) =>
+                    PricedOrderLineDto(null, null, 0.0, 0.0, comment)
+            }
+
     }
 
     final case class OrderFormDto(
@@ -120,16 +126,20 @@ object PlaceOrderDTO {
         customerInfo : CustomerInfoDto,
         shippingAddress : AddressDto,
         billingAddress : AddressDto,
-        lines : List[OrderFormLineDto])
+        lines : List[OrderFormLineDto],
+        promotionCode: String)
 
     object OrderFormDto {
+
         def toUnvalidatedOrder(dto: OrderFormDto) : UnvalidatedOrder = {
             val customerInfo = CustomerInfoDto.toUnvalidatedCustomerInfo(dto.customerInfo)
             val shippingAddress = AddressDto.toUnvalidatedAddress(dto.shippingAddress)
             val billingAddress = AddressDto.toUnvalidatedAddress(dto.billingAddress)
             val lines = dto.lines.map(line => OrderLineDto.toUnvalidatedOrderLine(line))
-            UnvalidatedOrder(dto.orderId, customerInfo,shippingAddress, billingAddress, lines)
+            val promotionCode = dto.promotionCode
+            UnvalidatedOrder(dto.orderId, customerInfo,shippingAddress, billingAddress, lines, promotionCode)
         }
+
     }
 
     final case class OrderPlacedDto(

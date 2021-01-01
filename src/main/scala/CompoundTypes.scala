@@ -26,9 +26,16 @@ object CompoundTypes {
         customerInfo : CustomerInfo,
         shippingAddress : Address,
         billingAddress : Address,
-        lines : List[ValidatedOrderLine])
+        lines : List[ValidatedOrderLine],
+        pricingMethod: PricingMethod)
 
     final case class OrderAcknowledgment(
         emailAddress : EmailAddress,
         letter : HtmlString)
+
+    final case class PricedOrderProductLine(
+        orderLineId : OrderLineId,
+        productCode : ProductCode,
+        quantity : OrderQuantity,
+        linePrice : Price)
 }

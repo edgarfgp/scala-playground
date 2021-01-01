@@ -1,4 +1,4 @@
-import PlaceOrderApi.{HttpRequest, placeOrderApi}
+import PlaceOrderApi._
 
 import scala.io.Source
 

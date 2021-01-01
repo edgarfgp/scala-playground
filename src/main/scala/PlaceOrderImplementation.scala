@@ -7,6 +7,7 @@ import PublicTypes.PlaceOrderError._
 import PublicTypes.PlaceOrderEvent._
 import PublicTypes.ShippingMethod._
 import PublicTypes._
+import SimpleTypes.PricedOrderLine.{CommentLine, ProductLine}
 import SimpleTypes._
 
 object PlaceOrderImplementation {
@@ -92,7 +93,13 @@ object PlaceOrderImplementation {
         val price = getProductPrice(validatedOrderLine.productCode)
         Price.multiply(qty, price) match {
             case Left(value) => Left(value)
-            case Right(value) => Right(PricedOrderLine(validatedOrderLine.orderLineId, validatedOrderLine.productCode, validatedOrderLine.quantity, value))
+            case Right(value) =>
+                val pricedOrderProductLine = PricedOrderProductLine(
+                    validatedOrderLine.orderLineId,
+                    validatedOrderLine.productCode,
+                    validatedOrderLine.quantity,
+                    value)
+                Right(ProductLine(pricedOrderProductLine))
         }
     }
 
@@ -106,23 +113,46 @@ object PlaceOrderImplementation {
             order.copy(shippingInfo = updatedShippingInfo)
     }
 
-    def priceOrder: PriceOrder = {
-        getProductPrice => validatedOrder =>
-        val lines = validatedOrder.lines.map(line => toPricedOrderLine(getProductPrice, line)) collect { case Right(validatedOrderLine) =>  validatedOrderLine}
-        val amountToBill = BillingAmount.sumPrices(lines.map(line => line.linePrice))
-        amountToBill match {
-            case Left(value) => Left(value)
-            case Right(billAmount) =>
-                val pricedOrder =
-                    PricedOrder(
-                        validatedOrder.orderId,
-                        validatedOrder.customerInfo,
-                        validatedOrder.shippingAddress,
-                        validatedOrder.billingAddress,
-                        billAmount,
-                        lines)
-                Right(pricedOrder)
+    def getLinePrice(line: PricedOrderLine) : Price = line match {
+        case ProductLine(productLine) => productLine.linePrice
+        case PricedOrderLine.CommentLine(_) => Price.unsafeCreate(0.0)
+    }
+    def addCommentLine(pricingMethod: PricingMethod, lines: List[PricedOrderLine]) : List[PricedOrderLine] = {
+        pricingMethod match {
+            case PricingMethod.Standard => lines
+            case PricingMethod.Promotion(promotionCode) =>
+                val commentLine = CommentLine(s"Applied promotion $promotionCode")
+                commentLine :: lines
         }
+    }
+
+    def priceOrder: PriceOrder = {
+        getPricingFunction => validatedOrder =>
+            val getProductPrice = getPricingFunction(validatedOrder.pricingMethod)
+            val (_, lines) = validatedOrder.lines.map(line => toPricedOrderLine(getProductPrice, line))
+                .foldRight[(List[PricingError], List[PricedOrderLine])](Nil,Nil) {
+                    case (Left(error), (e, i)) => (error :: e, i)
+                    case (Right(result), (e, i)) =>
+                        (e, result :: i)
+                }
+
+            val processedLines = addCommentLine(validatedOrder.pricingMethod, lines)
+
+            val amountToBill = BillingAmount.sumPrices(processedLines.map(line => getLinePrice(line)))
+            amountToBill match {
+                case Left(value) => Left(value)
+                case Right(billAmount) =>
+                    val pricedOrder =
+                        PricedOrder(
+                            validatedOrder.orderId,
+                            validatedOrder.customerInfo,
+                            validatedOrder.shippingAddress,
+                            validatedOrder.billingAddress,
+                            billAmount,
+                            processedLines,
+                            validatedOrder.pricingMethod)
+                    Right(pricedOrder)
+            }
     }
 
     def acknowledgeOrder : AcknowledgeOrder = {
@@ -154,7 +184,7 @@ object PlaceOrderImplementation {
     }
 
     def placeOrder(checkProductExists: CheckProductCodeExists, checkAddressExists: CheckAddressExists,
-        getProductPrice: GetProductPrice, calculateShippingCost: CalculateShippingCost,
+        getProductPrice: GetPricingFunction, calculateShippingCost: CalculateShippingCost,
         createOrderAcknowledgmentLetter: CreateOrderAcknowledgmentLetter,
         sendOrderAcknowledgment: SendOrderAcknowledgment): PlaceOrder = {
             unvalidatedOrder =>
@@ -184,7 +214,8 @@ object PlaceOrderImplementation {
                 billingAddress <- toAddress(checkedBillingAddress)
                 eitherLines = unvalidatedOrder.lines.map(unvalidatedOrderLine => toValidatedOrderLine(checkProductCodeExists, unvalidatedOrderLine))
                 lines = eitherLines collect { case Right(validatedOrderLine) => validatedOrderLine }
-                validatedOrder = ValidatedOrder(orderId, customerInfo, shippingAddress, billingAddress, lines)
+                pricingMethod = PricingModule.createPricingMethod(unvalidatedOrder.promotionCode)
+                validatedOrder = ValidatedOrder(orderId, customerInfo, shippingAddress, billingAddress, lines, pricingMethod)
             } yield validatedOrder
 
     def calculateShippingCost: CalculateShippingCost = {

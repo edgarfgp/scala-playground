@@ -1,9 +1,7 @@
-import InternalTypes.{CalculateShippingCost, CheckAddressExists, CheckProductCodeExists, CreateOrderAcknowledgmentLetter, GetProductPrice, SendOrderAcknowledgment}
-import PlaceOrderDTO.OrderFormDto.toUnvalidatedOrder
-import PlaceOrderDTO.{OrderFormDto, PlaceOrderErrorDto, PlaceOrderEventDto}
-import PlaceOrderImplementation._
-import PublicTypes.{PlaceOrderError, PlaceOrderEvent}
-import SimpleTypes.JsonString
+import InternalTypes._
+import PlaceOrderDTO._
+import PublicTypes._
+import SimpleTypes._
 import io.circe.generic.auto._
 import io.circe.parser._
 
@@ -25,10 +23,39 @@ object PlaceOrderApi {
 
     def calculateShippingCost : CalculateShippingCost = PlaceOrderImplementation.calculateShippingCost
 
+    def getPromotionPrices(promotionCode: PromotionCode): TryGetProductPrice = {
+            def halfPricePromotion : TryGetProductPrice = {
+                productCode =>
+                    if(ProductCode.value(productCode) == "ONSALE") Some(Price.unsafeCreate(5.0))
+                    else None
+            }
+
+            def quarterPricePromotion : TryGetProductPrice = {
+                productCode =>
+                    if(ProductCode.value(productCode) == "ONSALE") Some(Price.unsafeCreate(2.5))
+                    else None
+            }
+
+            def noPromotion : TryGetProductPrice = productCode => None
+
+            promotionCode match {
+                case "HALF" => halfPricePromotion
+                case "QUARTER" => quarterPricePromotion
+                case _ => noPromotion
+            }
+    }
+
+    def getStandardPrices: GetProductPrice =
+        productCode => Price.unsafeCreate(10.0)
+
+    def getPricingFunction : GetPricingFunction =
+        PricingModule.getPricingFunction(_ => getStandardPrices, productCode => getPromotionPrices(productCode))
+
     private def runWorkflow =
-        PlaceOrderImplementation.placeOrder(checkProductExists,
+        PlaceOrderImplementation.placeOrder(
+            checkProductExists,
             checkAddressExists,
-            getProductPrice,
+            getPricingFunction,
             calculateShippingCost,
             createOrderAcknowledgmentLetter,
             sendOrderAcknowledgment)
@@ -39,7 +66,7 @@ object PlaceOrderApi {
             decode[OrderFormDto](orderFormJson) match {
                 case Left(errorMessage) => throw new Exception(errorMessage)
                 case Right(orderFrom) =>
-                    toUnvalidatedOrder(orderFrom)
+                    OrderFormDto.toUnvalidatedOrder(orderFrom)
             }
 
         val workflowResult = runWorkflow(unvalidatedOrder)

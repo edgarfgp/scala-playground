@@ -1,7 +1,7 @@
-import CompoundTypes.{OrderAcknowledgment, ValidatedOrder}
-import PlaceOrderImplementation.{AddressValidationError, SendResult}
-import PublicTypes.{OrderAcknowledgmentSent, PlaceOrderError, PlaceOrderEvent, PricedOrder, PricedOrderWithShippingMethod, PricingError, UnvalidatedAddress, UnvalidatedOrder, ValidationError}
-import SimpleTypes.{CheckedAddress, HtmlString, Price, ProductCode}
+import CompoundTypes._
+import PlaceOrderImplementation._
+import PublicTypes._
+import SimpleTypes._
 
 object InternalTypes {
 
@@ -27,8 +27,7 @@ object InternalTypes {
 
     type PlaceOrderEventDto = Map[String, Object]
 
-    type FreeVipShipping =
-        PricedOrderWithShippingMethod => PricedOrderWithShippingMethod
+    type FreeVipShipping = PricedOrderWithShippingMethod => PricedOrderWithShippingMethod
 
     type AcknowledgeOrder =
         CreateOrderAcknowledgmentLetter
@@ -36,10 +35,15 @@ object InternalTypes {
             => PricedOrderWithShippingMethod
             => Option[OrderAcknowledgmentSent]
 
-    type PriceOrder =
-        GetProductPrice
-            => ValidatedOrder
-            => Either[PricingError, PricedOrder]
+    type TryGetProductPrice = ProductCode => Option[Price]
+
+    type PriceOrder = GetPricingFunction => ValidatedOrder => Either[PricingError, PricedOrder]
+
+    type GetPricingFunction = PricingMethod => GetProductPrice
+
+    type GetStandardPrices = Unit => GetProductPrice
+
+    type GetPromotionPrices = PromotionCode => TryGetProductPrice
 
 
 }

@@ -1,9 +1,10 @@
-import CompoundTypes.{Address, CustomerInfo}
+import CompoundTypes._
 import SimpleTypes._
 
 import java.net.URI
 
 package object PublicTypes {
+
     final case class UnvalidatedCustomerInfo(
         firstName : String,
         lastName : String,
@@ -30,15 +31,10 @@ package object PublicTypes {
         customerInfo : UnvalidatedCustomerInfo,
         shippingAddress : UnvalidatedAddress,
         billingAddress : UnvalidatedAddress,
-        lines : List[UnvalidatedOrderLine])
+        lines : List[UnvalidatedOrderLine],
+        promotionCode: String)
 
     final case class OrderAcknowledgmentSent(orderId : OrderId, emailAddress : EmailAddress)
-
-    final case class PricedOrderLine(
-        orderLineId : OrderLineId,
-        productCode : ProductCode,
-        quantity : OrderQuantity,
-        linePrice : Price)
 
     final case class PricedOrder(
         orderId : OrderId,
@@ -46,7 +42,8 @@ package object PublicTypes {
         shippingAddress : Address,
         billingAddress : Address,
         amountToBill : BillingAmount,
-        lines : List[PricedOrderLine])
+        lines : List[PricedOrderLine],
+        pricingMethod : PricingMethod)
 
     final case class BillableOrderPlaced(
         orderId : OrderId,

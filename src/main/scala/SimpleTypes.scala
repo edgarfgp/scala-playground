@@ -1,3 +1,4 @@
+import CompoundTypes.PricedOrderProductLine
 import PublicTypes.UnvalidatedAddress
 import SimpleTypes.ProductCode.{Gizmo, Widget}
 import SimpleTypes.{KilogramQuantity, UnitQuantity, _}
@@ -25,6 +26,18 @@ object SimpleTypes {
     type GizmoCode = String
 
     type UsStateCode = String
+
+    type PromotionCode = String
+
+    type CommentLine = String
+
+    sealed trait PricedOrderLine
+    object PricedOrderLine {
+
+        final case class ProductLine(productLine : PricedOrderProductLine) extends PricedOrderLine
+
+        final case class CommentLine(commentLine: String) extends PricedOrderLine
+    }
 
     sealed trait VipStatus
     object VipStatus {
@@ -72,9 +85,18 @@ object SimpleTypes {
                     case Left(value) => Left(value)
                     case Right(value) => Right(Gizmo(value))
                 }
-            else
+            else {
                 Left(s"$fieldName: Format not recognized")
+            }
         }
+    }
+
+    sealed trait PricingMethod
+    object PricingMethod {
+
+        final object Standard extends PricingMethod
+
+        final case class Promotion(promotionCode: PromotionCode) extends PricingMethod
     }
 
     type UnitQuantity = Int
@@ -114,9 +136,6 @@ object SimpleTypes {
     type BillingAmount = BigDecimal
 
     final case class PdfAttachment(name : String, bytes: Array[Byte])
-
-    type PromotionCode = String
-
 }
 
 object ConstrainedType {
@@ -156,8 +175,11 @@ object ConstrainedType {
     def createLike(fieldName: String, pattern: String, str: String) : Either[String, String] = {
         if(str.isEmpty) Left(s"$fieldName must not be null or empty")
         else
-            if (pattern.r.matches(str)) Right(str)
-            else Left(s"$fieldName $str must match the pattern")
+            if (pattern.r.matches(str)) { Right(str)}
+            else {
+                Left(s"$fieldName $str must match the pattern")
+            }
+
     }
 }
 

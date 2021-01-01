@@ -28,9 +28,10 @@
   },
   "lines" : [
     {
-      "orderLineId" : "ASD123",
-      "productCode": "Aweerrt",
+      "orderLineId" : "WASD123",
+      "productCode": "W1234",
       "quantity" : 20.6
     }
-  ]
+  ],
+  "promotionCode": "HALF"
 }
