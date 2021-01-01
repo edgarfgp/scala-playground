@@ -135,10 +135,9 @@ object PlaceOrderImplementation {
                     case (Right(result), (e, i)) =>
                         (e, result :: i)
                 }
-
             val processedLines = addCommentLine(validatedOrder.pricingMethod, lines)
-
             val amountToBill = BillingAmount.sumPrices(processedLines.map(line => getLinePrice(line)))
+
             amountToBill match {
                 case Left(value) => Left(value)
                 case Right(billAmount) =>
