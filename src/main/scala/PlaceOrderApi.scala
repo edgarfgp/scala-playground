@@ -72,12 +72,16 @@ object PlaceOrderApi {
         val workflowResult = runWorkflow(unvalidatedOrder)
         processWorkflowResult(workflowResult)
     }
+
     private def processWorkflowResult(result : Either[PlaceOrderError, List[PlaceOrderEvent]]): HttpResponse = result match {
         case Right(events) =>
             val placeOrderEvents = events.map(e => PlaceOrderEventDto.fromDomain(e))
-            HttpResponse(200, placeOrderEvents.mkString("\n"))
+            println("Response ----> 200")
+            placeOrderEvents.foreach(println)
+            HttpResponse(200, s"$placeOrderEvents")
         case Left(error) =>
             val responseError = PlaceOrderErrorDto.fromDomain(error)
+            println(s"Response ----> 401 ${responseError.message}")
             HttpResponse(401, responseError.message)
     }
 }

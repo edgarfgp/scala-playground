@@ -8,7 +8,6 @@ object Main {
         val filename = "src/main/scala/place-order.json"
         val source = Source.fromFile(filename)
         val responseBody = try source.mkString finally source.close()
-        val result = placeOrderApi(HttpRequest("GET", "https://myorders.com/placeOrders", responseBody))
-        println(result)
+        placeOrderApi(HttpRequest("GET", "https://myorders.com/placeOrders", responseBody))
     }
 }
