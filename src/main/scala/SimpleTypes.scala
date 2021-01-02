@@ -247,7 +247,7 @@ object BillingAmount {
 
 object UsStateCode {
 
-    def create(fieldName: String, str: String) = {
+    def create(fieldName: String, str: String): Either[String, String] = {
         val pattern = "^(A[KLRZ]|C[AOT]|D[CE]|FL|GA|HI|I[ADLN]|K[SY]|LA|M[ADEINOST]|N[CDEHJMVY]|O[HKR]|P[AR]|RI|S[CD]|T[NX]|UT|V[AIT]|W[AIVY])$"
         ConstrainedType.createLike(fieldName, pattern, str)
     }

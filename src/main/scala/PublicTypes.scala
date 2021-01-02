@@ -50,11 +50,21 @@ package object PublicTypes {
         billingAddress: Address,
         amountToBill : BillingAmount)
 
+    final case class ShippableOrderLine(
+        productCode : ProductCode,
+        quantity : OrderQuantity)
+
+    final case class ShippableOrderPlaced(
+        orderId : OrderId,
+        shippingAddress : Address,
+        shipmentLines : List[ShippableOrderLine],
+        pdf : PdfAttachment)
+
     sealed trait PlaceOrderEvent
 
     object PlaceOrderEvent {
 
-        final case class OrderPlacedEvent(event : PricedOrder) extends PlaceOrderEvent
+        final case class ShippableOrderPlacedEvent(event : ShippableOrderPlaced) extends PlaceOrderEvent
 
         final case class BillableOrderPlacedEvent(event : BillableOrderPlaced) extends PlaceOrderEvent
 

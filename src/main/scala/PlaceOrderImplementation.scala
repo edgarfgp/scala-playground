@@ -172,14 +172,27 @@ object PlaceOrderImplementation {
             Some(BillableOrderPlaced(placeOrder.orderId, placeOrder.billingAddress, placeOrder.amountToBill))
         else None
 
+    def makeShipmentLine(line: PricedOrderLine) : Option[ShippableOrderLine] = {
+        line match {
+            case ProductLine(productLine) => Some(ShippableOrderLine(productLine.productCode, productLine.quantity))
+            case CommentLine(_) => None
+        }
+    }
+
+    def createShippingEvent(placedOrder: PricedOrder) : ShippableOrderPlaced = {
+        val shipmentLines = placedOrder.lines.flatMap(line => makeShipmentLine(line))
+        val pdf = PdfAttachment(s"Order${placedOrder.orderId}.pdf", Array())
+        ShippableOrderPlaced(placedOrder.orderId, placedOrder.shippingAddress, shipmentLines, pdf)
+    }
+
     def createEvents : CreateEvents = {
         pricedOrder => orderAcknowledgmentSent =>
-        val orderPlacedEvents = List(OrderPlacedEvent(pricedOrder))
-        val acknowledgmentEvents = listOfOption(orderAcknowledgmentSent.map(order => AcknowledgmentSentEvent(order)))
-        val billingEvents = listOfOption(createBillingEvent(pricedOrder).map(bill => BillableOrderPlacedEvent(bill)))
-        for {
-            result <- List(orderPlacedEvents, acknowledgmentEvents, billingEvents).flatten
-        } yield result
+            val shippableOrderPlacedEvent = List(ShippableOrderPlacedEvent(createShippingEvent(pricedOrder)))
+            val acknowledgmentEvents = listOfOption(orderAcknowledgmentSent.map(order => AcknowledgmentSentEvent(order)))
+            val billingEvents = listOfOption(createBillingEvent(pricedOrder).map(bill => BillableOrderPlacedEvent(bill)))
+            for {
+                result <- List(shippableOrderPlacedEvent, acknowledgmentEvents, billingEvents).flatten
+            } yield result
     }
 
     def placeOrder(checkProductExists: CheckProductCodeExists, checkAddressExists: CheckAddressExists,

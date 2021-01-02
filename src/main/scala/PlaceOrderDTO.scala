@@ -142,22 +142,24 @@ object PlaceOrderDTO {
 
     }
 
-    final case class OrderPlacedDto(
+    final case class ShippableOrderLineDto(ProductCode: String, quantity : BigDecimal)
+
+    final case class ShippableOrderPlacedDto(
         orderId : String,
-        customerInfo : CustomerInfoDto,
         shippingAddress : AddressDto,
-        billingAddress : AddressDto,
-        amountToBill : BigDecimal,
-        lines : List[PricedOrderLineDto])
+        shipmentLines: List[ShippableOrderLineDto],
+        pdfAttachment: PdfAttachment)
 
-    object OrderPlacedDto {
+    object ShippableOrderPlacedDto {
 
-        def fromDomain(domainObj: PricedOrder) : OrderPlacedDto = {
-            val customerInfo = CustomerInfoDto.fromCustomerInfo(domainObj.customerInfo)
+        def fromShippableOrderLine(domainObj: ShippableOrderLine) : ShippableOrderLineDto = {
+            ShippableOrderLineDto(ProductCode.value(domainObj.productCode), OrderQuantity.value(domainObj.quantity))
+        }
+
+        def fromDomain(domainObj:  ShippableOrderPlaced) : ShippableOrderPlacedDto = {
             val shippingAddress = AddressDto.fromAddress(domainObj.shippingAddress)
-            val billingAddress = AddressDto.fromAddress(domainObj.billingAddress)
-            val lines = domainObj.lines.map(line => PricedOrderLineDto.fromDomain(line))
-            OrderPlacedDto(domainObj.orderId, customerInfo, shippingAddress, billingAddress, domainObj.amountToBill, lines)
+            val shipmentLines = domainObj.shipmentLines.map(line => fromShippableOrderLine(line))
+            ShippableOrderPlacedDto(domainObj.orderId, shippingAddress, shipmentLines, domainObj.pdf)
         }
     }
 
@@ -185,9 +187,9 @@ object PlaceOrderDTO {
     object PlaceOrderEventDto {
 
         def fromDomain(domainObj: PlaceOrderEvent) : PlaceOrderEventDto = domainObj match {
-                case OrderPlacedEvent(orderPlaced) =>
-                    val value = OrderPlacedDto.fromDomain(orderPlaced)
-                    val key = "OrderPlacedEvent"
+                case ShippableOrderPlacedEvent(shippableOrderPlaced) =>
+                    val value = ShippableOrderPlacedDto.fromDomain(shippableOrderPlaced)
+                    val key = "ShippableOrderPlacedEvent"
                     Map(key-> value)
                 case BillableOrderPlacedEvent(billableOrderPlaced) =>
                     val value = BillableOrderPlacedDto.fromDomain(billableOrderPlaced)
