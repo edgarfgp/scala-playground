@@ -1,14 +1,15 @@
-import CompoundTypes._
-import InternalTypes._
-import PlaceOrderDTO.Utils.listOfOption
-import PlaceOrderImplementation.AddressValidationError._
-import PlaceOrderImplementation.SendResult._
-import PublicTypes.PlaceOrderError._
-import PublicTypes.PlaceOrderEvent._
-import PublicTypes.ShippingMethod._
-import PublicTypes._
-import SimpleTypes.PricedOrderLine.{CommentLine, ProductLine}
-import SimpleTypes._
+package orderplacing
+import orderplacing.CompoundTypes._
+import orderplacing.InternalTypes._
+import orderplacing.PlaceOrderDTO.Utils.listOfOption
+import orderplacing.PlaceOrderImplementation.AddressValidationError._
+import orderplacing.PlaceOrderImplementation.SendResult._
+import orderplacing.PublicTypes.PlaceOrderError._
+import orderplacing.PublicTypes.PlaceOrderEvent._
+import orderplacing.PublicTypes.ShippingMethod.Fedex24
+import orderplacing.PublicTypes._
+import orderplacing.SimpleTypes.PricedOrderLine._
+import orderplacing.SimpleTypes._
 
 object PlaceOrderImplementation {
 

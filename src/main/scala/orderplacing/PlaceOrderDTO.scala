@@ -1,10 +1,13 @@
-import CompoundTypes._
-import InternalTypes._
-import PublicTypes.PlaceOrderError._
-import PublicTypes.PlaceOrderEvent._
-import PublicTypes._
-import SimpleTypes.PricedOrderLine._
-import SimpleTypes._
+package orderplacing
+
+import orderplacing.CompoundTypes.{Address, CustomerInfo, PersonalName}
+import orderplacing.InternalTypes.PlaceOrderEventDto
+import orderplacing.PublicTypes.PlaceOrderError.{Pricing, RemoteService, Validation}
+import orderplacing.PublicTypes.PlaceOrderEvent.{AcknowledgmentSentEvent, BillableOrderPlacedEvent, ShippableOrderPlacedEvent}
+import orderplacing.PublicTypes.{BillableOrderPlaced, OrderAcknowledgmentSent, PlaceOrderError, PlaceOrderEvent, ShippableOrderLine, ShippableOrderPlaced, UnvalidatedAddress, UnvalidatedCustomerInfo, UnvalidatedOrder, UnvalidatedOrderLine}
+import orderplacing.SimpleTypes.PricedOrderLine.{CommentLine, ProductLine}
+import orderplacing.SimpleTypes.{OrderQuantity, PdfAttachment, PricedOrderLine, ProductCode, UsStateCode, VipStatus}
+;
 
 object PlaceOrderDTO {
 
@@ -52,7 +55,7 @@ object PlaceOrderDTO {
         city : String,
         zipCode : String,
         country: String,
-        state: UsStateCode)
+        state:UsStateCode)
 
     object AddressDto {
 

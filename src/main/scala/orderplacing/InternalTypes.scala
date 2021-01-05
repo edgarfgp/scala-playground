@@ -1,7 +1,10 @@
-import CompoundTypes._
-import PlaceOrderImplementation._
-import PublicTypes._
-import SimpleTypes._
+
+package orderplacing
+
+import orderplacing.CompoundTypes._
+import orderplacing.PlaceOrderImplementation._
+import orderplacing.PublicTypes._
+import orderplacing.SimpleTypes._
 
 object InternalTypes {
 

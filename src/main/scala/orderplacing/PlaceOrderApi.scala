@@ -1,9 +1,11 @@
-import InternalTypes._
-import PlaceOrderDTO._
-import PublicTypes._
-import SimpleTypes._
-import io.circe.generic.auto._
-import io.circe.parser._
+package orderplacing
+
+import io.circe.generic.auto.exportDecoder
+import io.circe.jawn.decode
+import orderplacing.InternalTypes._
+import orderplacing.PlaceOrderDTO._
+import orderplacing.PublicTypes._
+import orderplacing.SimpleTypes._
 
 object PlaceOrderApi {
 

@@ -1,7 +1,9 @@
-import CompoundTypes.PricedOrderProductLine
-import PublicTypes.UnvalidatedAddress
-import SimpleTypes.ProductCode.{Gizmo, Widget}
-import SimpleTypes.{KilogramQuantity, UnitQuantity, _}
+package orderplacing
+
+import orderplacing.CompoundTypes._
+import orderplacing.PublicTypes._
+import orderplacing.SimpleTypes.ProductCode._
+import orderplacing.SimpleTypes._
 
 object SimpleTypes {
 

@@ -1,6 +1,9 @@
-import InternalTypes._
-import SimpleTypes.PricingMethod._
-import SimpleTypes._
+
+package orderplacing
+
+import orderplacing.InternalTypes._
+import orderplacing.SimpleTypes._
+import orderplacing.SimpleTypes.PricingMethod._
 
 object PricingModule {
 
