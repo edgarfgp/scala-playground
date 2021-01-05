@@ -4,13 +4,25 @@ import tictactoe.CompoundTypes._
 import tictactoe.SimpleTypes.Letter._
 import tictactoe.SimpleTypes.OneThroughThree._
 import tictactoe.SimpleTypes.OutCome._
-import tictactoe.SimpleTypes._
 import tictactoe.SimpleTypes.Value._
+import tictactoe.SimpleTypes._
 
 import scala.annotation.tailrec
 
-
 object Game {
+
+    val waysToWin = List(
+        (Position(One, One), Position(Two, One), Position(Three, One)),
+        (Position(Two, One), Position(Two, Two), Position(Two, Three)),
+        (Position(Three, One), Position(Three, Two), Position(Three, Three)),
+
+        (Position(One, One), Position(Two, One), Position(Three, One)),
+        (Position(One, Two), Position(Two, Two), Position(Three, Two)),
+        (Position(One, Three), Position(Two, Three), Position(Three, Three)),
+
+        (Position(One, One), Position(Two, Two), Position(Three, Three)),
+        (Position(One, Three), Position(Two, Two), Position(Three, One)),
+    )
 
     def select(board: Board)(position: Position): Value = {
         (board, position) match {
@@ -21,80 +33,65 @@ object Game {
             case ((_, (_, x, _), _), Position(Two, Two)) => x
             case ((_, (_, _, x), _), Position(Two, Three)) => x
             case ((_, _, (x, _, _)), Position(Three, One)) => x
-            case ((_, _, (_, x, _)), Position(Three, One)) => x
+            case ((_, _, (_, x, _)), Position(Three, Two)) => x
             case ((_, _, (_, _, x)), Position(Three, Three)) => x
         }
     }
 
-    def set (value: Value) (board: Board) (position: Position) : Board  = {
+    def set(value: Value)(board: Board)(position: Position): Board = {
         (board, position) match {
             case (((_, v2, v3), r2, r3), Position(One, One)) => ((value, v2, v3), r2, r3)
             case (((v1, _, v3), r2, r3), Position(One, Two)) => ((v1, value, v3), r2, r3)
             case (((v1, v2, _), r2, r3), Position(One, Three)) => ((v1, v2, value), r2, r3)
-            case ((r1, (_, v2, v3), r3), Position(Two, One)) =>  (r1, (value, v2, v3), r3)
+            case ((r1, (_, v2, v3), r3), Position(Two, One)) => (r1, (value, v2, v3), r3)
             case ((r1, (v1, _, v3), r3), Position(Two, Two)) => (r1, (v1, value, v3), r3)
             case ((r1, (v1, v2, _), r3), Position(Two, Three)) => (r1, (v1, v2, value), r3)
-            case ((r1, r2, (_, v2, v3)), Position(Three, One)) => (r1 , r2, (value, v2, v3))
+            case ((r1, r2, (_, v2, v3)), Position(Three, One)) => (r1, r2, (value, v2, v3))
             case ((r1, r2, (v1, _, v3)), Position(Three, Two)) => (r1, r2, (v1, value, v3))
             case ((r1, r2, (v1, v2, _)), Position(Three, Three)) => (r1, r2, (v1, v2, value))
         }
     }
 
-    def modify(f : Value => Value) (board: Board) (position: Position) : BoardResult = {
+    def modify(f: Value => Value)(board: Board)(position: Position): BoardResult = {
         set(f(select(board)(position)))(board)(position)
     }
 
-    def placePieceIfCan(piece: Letter) (board: Board) (position: Position): BoardResult = {
+    def placePieceIfCan(piece: Letter)(board: Board)(position: Position): BoardResult = {
         modify {
             case Unspecified => Specified(piece)
             case Specified(letter) => Specified(letter)
         }(board)(position)
     }
 
-
-    def makeMove (board: Board) (move: Move): Option[EmptyBoard] = {
-        if (select(board)(move.at) ==  Unspecified)
+    def makeMove(board: Board)(move: Move): Option[EmptyBoard] = {
+        if (select(board)(move.at) == Unspecified)
             Some(placePieceIfCan(move.place)(board)(move.at))
         else None
     }
 
-    val waysToWin = List(
-        (Position(One, One), Position(Two,One), Position(Three, One)),
-        (Position(Two, One), Position(Two, Two), Position(Two, Three)),
-        (Position(Three, One) ,Position(Three, Two),Position(Three, Three)),
-
-        (Position(One, One), Position(Two,One), Position(Three, One)),
-        (Position(One, Two), Position(Two, Two), Position(Three, Two)),
-        (Position(One, Three) ,Position(Two, Three),Position(Three, Three)),
-
-        (Position(One, One), Position(Two,Two), Position(Three, Three)),
-        (Position(One, Three), Position(Two, Two), Position(Three, One)),
-    )
-
-    def map3[A] (f: Position => Value) (a: Position, b: Position, c: Position) : (Value, Value, Value) = (f(a), f(b), f(c))
-
-    val cells: List[Position] =
-        for {
-            res <- List(One, Two, Three).flatMap(row => List(One, Two, Three).map(column => Position(row, column)))
-        } yield res
+    def map3[A](f: Position => Value)(a: Position, b: Position, c: Position): (Value, Value, Value) = (f(a), f(b), f(c))
 
     def winner(board: Board): Option[Letter] = {
-        val  winPaths =  waysToWin.map {
-            case (p1, _, _) => select(board)(p1)
-            case (_, p2, _) => select(board)(p2)
-            case (_, _, p3) => select(board)(p3)
+        val winPaths = waysToWin.map {
+            case (p1, _, _) => map3(value => select(board)(value))(p1, _, _)
+            case (_, p2, _) => map3(value => select(board)(value))(_, p2, _)
+            case (_, _, p3) => map3(value => select(board)(value))(_, _, p3)
         }
 
-        if(winPaths.contains((X, X, X))) {
+        if (winPaths.contains((X, X, X))) {
             Some(X)
-        }else if(winPaths.contains(O, O, O)){
+        } else if (winPaths.contains(O, O, O)) {
             Some(O)
-        }else{
+        } else {
             None
         }
     }
 
-    def slotsRemaining (board: Board): Boolean = {
+    def slotsRemaining(board: Board): Boolean = {
+        val cells = for {
+            res <- List(One, Two, Three).flatMap(column => List(One, Two, Three).map(row => Position(column, row)))
+        } yield res
+
         cells.exists(position => { select(board)(position) == Unspecified })
     }
 
@@ -106,24 +103,25 @@ object Game {
         }
     }
 
-    def renderValue(value : Value): String = {
+    def renderValue(value: Value): String = {
         value match {
-            case Unspecified => ""
+            case Unspecified => " "
             case Specified(letter) =>
                 letter match {
-                    case Letter.X => "X"
-                    case Letter.O => "O"
+                    case X => "X"
+                    case O => "O"
                 }
         }
     }
 
     def otherPlayer(letter: Letter): Letter =
         letter match {
-            case Letter.X => X
-            case Letter.O => O
+            case X => O
+            case O => X
         }
 
-    def render(value : EmptyBoard): String = {
+    // FIXME Find a better way of handling this
+    def render(value: EmptyBoard): String = {
         val va = renderValue(value._1._1)
         val vb = renderValue(value._1._2)
         val vc = renderValue(value._1._3)
@@ -134,13 +132,15 @@ object Game {
         val vh = renderValue(value._3._2)
         val vi = renderValue(value._3._3)
         s"""
-$va | $vb | $vc
-$vd | $ve | $vf
-$vg | $vh | $vi"""
+         $va|$vb|$vc
+         _ _ _
+         $vd|$ve|$vf
+         _ _ _
+         $vg|$vh|$vi""".stripIndent()
     }
 
 
-    def parseOneThroughThree(raw : String) : Option[OneThroughThree] = {
+    def parseOneThroughThree(raw: String): Option[OneThroughThree] = {
         raw match {
             case "1" => Some(One)
             case "2" => Some(Two)
@@ -161,10 +161,10 @@ $vg | $vh | $vi"""
     }
 
     @tailrec
-    def readMoveIo(letter: Letter) : Move = {
+    def readMoveIo(letter: Letter): Move = {
         val readLine = scala.io.StdIn.readLine()
         parseMove(readLine) match {
-            case Some(position) =>  Move(position, letter)
+            case Some(position) => Move(position, letter)
             case None =>
                 println("Bad move! Please input row and column numbers")
                 readMoveIo(letter)
@@ -172,7 +172,7 @@ $vg | $vh | $vi"""
     }
 
     @tailrec
-    def nextMoveIo(board: (Row, Row, Row), letter: Letter) : BoardResult = {
+    def nextMoveIo(board: (Row, Row, Row), letter: Letter): BoardResult = {
         val move = readMoveIo(letter)
         makeMove(board)(move) match {
             case Some(newBoard) => newBoard
@@ -183,7 +183,7 @@ $vg | $vh | $vi"""
     }
 
     @tailrec
-    def playIo(gameState: GameState) : Unit = {
+    def playIo(gameState: GameState): Unit = {
         println(s"${gameState.whoseTurn} Turn")
         val board = render(gameState.board)
         println(s"$board")
@@ -193,7 +193,9 @@ $vg | $vh | $vi"""
         outCome(newBoard) match {
             case Winner(letter) =>
                 println(s"wins!!! $letter")
-                println{render(newBoard)}
+                println {
+                    render(newBoard)
+                }
             case OutCome.Draw =>
                 println("It's a draw!")
             case OutCome.NoneYet =>
