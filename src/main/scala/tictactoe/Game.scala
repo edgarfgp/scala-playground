@@ -11,19 +11,6 @@ import scala.annotation.tailrec
 
 object Game {
 
-    val waysToWin = List(
-        (Position(One, One), Position(Two, One), Position(Three, One)),
-        (Position(Two, One), Position(Two, Two), Position(Two, Three)),
-        (Position(Three, One), Position(Three, Two), Position(Three, Three)),
-
-        (Position(One, One), Position(Two, One), Position(Three, One)),
-        (Position(One, Two), Position(Two, Two), Position(Three, Two)),
-        (Position(One, Three), Position(Two, Three), Position(Three, Three)),
-
-        (Position(One, One), Position(Two, Two), Position(Three, Three)),
-        (Position(One, Three), Position(Two, Two), Position(Three, One)),
-    )
-
     def select(board: Board)(position: Position): Value = {
         (board, position) match {
             case (((x, _, _), _, _), Position(One, One)) => x
@@ -69,18 +56,29 @@ object Game {
         else None
     }
 
-    def map3[A](f: Position => Value)(a: Position, b: Position, c: Position): (Value, Value, Value) = (f(a), f(b), f(c))
-
     def winner(board: Board): Option[Letter] = {
-        val winPaths = waysToWin.map {
-            case (p1, _, _) => map3(value => select(board)(value))(p1, _, _)
-            case (_, p2, _) => map3(value => select(board)(value))(_, p2, _)
-            case (_, _, p3) => map3(value => select(board)(value))(_, _, p3)
+        val waysToWin = List(
+            (Position(row = One, column = One), Position(row = One, column = Two), Position(row = One, column = Three)),
+            (Position(row = Two, column=  One), Position(row = Two,column =  Two), Position(row = Two,column =  Three)),
+            (Position(row = Three,column = One), Position(row = Three,column = Two), Position(row = Three, column= Three)),
+
+            (Position(row = One,column =  One), Position(row = Two,column =  One), Position(row = Three,column =  One)),
+            (Position(row = One,column =  Two), Position(row = Two,column =  Two), Position(row = Three,column =  Two)),
+            (Position(row = One,column =  Three), Position(row = Two,column =  Three), Position(row = Three,column =  Three)),
+
+            (Position(row =One,column = One), Position(row =Two,column = Two), Position(row =Three,column = Three)),
+            (Position(row =One,column = Three), Position(row =Two,column = Two), Position(row =Three, column = One)),
+        )
+
+        val winPaths = waysToWin.map { case (position0, position1, position2) =>
+            select(board)(position0)
+            select(board)(position1)
+            select(board)(position2)
         }
 
-        if (winPaths.contains((X, X, X))) {
+        if (winPaths.contains(Value.Specified(X))) {
             Some(X)
-        } else if (winPaths.contains(O, O, O)) {
+        } else if (winPaths.contains(Value.Specified(O))) {
             Some(O)
         } else {
             None
@@ -89,17 +87,21 @@ object Game {
 
     def slotsRemaining(board: Board): Boolean = {
         val cells = for {
-            res <- List(One, Two, Three).flatMap(column => List(One, Two, Three).map(row => Position(column, row)))
-        } yield res
+            row <- List(One, Two, Three)
+            column <- List(One, Two, Three)
+        } yield Position(row = row, column = column)
 
         cells.exists(position => { select(board)(position) == Unspecified })
     }
 
     def outCome(board: Board): OutCome = {
         (winner(board), slotsRemaining(board)) match {
-            case (Some(winningLetter), _) => Winner(winningLetter)
-            case (None, false) => Draw
-            case _ => NoneYet
+            case (Some(winningLetter), _) =>
+                Winner(winningLetter)
+            case (None, false) =>
+                Draw
+            case _ =>
+                NoneYet
         }
     }
 
@@ -120,23 +122,24 @@ object Game {
             case O => X
         }
 
-    // FIXME Find a better way of handling this
     def render(value: EmptyBoard): String = {
-        val va = renderValue(value._1._1)
-        val vb = renderValue(value._1._2)
-        val vc = renderValue(value._1._3)
-        val vd = renderValue(value._2._1)
-        val ve = renderValue(value._2._2)
-        val vf = renderValue(value._2._3)
-        val vg = renderValue(value._3._1)
-        val vh = renderValue(value._3._2)
-        val vi = renderValue(value._3._3)
+        val a = renderValue(value._1._1)
+        val b = renderValue(value._2._1)
+        val c = renderValue(value._3._1)
+
+        val d = renderValue(value._1._2)
+        val e = renderValue(value._2._2)
+        val f = renderValue(value._3._2)
+
+        val g = renderValue(value._1._3)
+        val h = renderValue(value._2._3)
+        val i = renderValue(value._3._3)
         s"""
-         $va|$vb|$vc
+         $a|$b|$c
          _ _ _
-         $vd|$ve|$vf
+         $d|$e|$f
          _ _ _
-         $vg|$vh|$vi""".stripIndent()
+         $g|$h|$i""".stripIndent()
     }
 
 
@@ -184,7 +187,8 @@ object Game {
 
     @tailrec
     def playIo(gameState: GameState): Unit = {
-        println(s"${gameState.whoseTurn} Turn")
+        val turn = gameState.whoseTurn
+        println(s"$turn Turn")
         val board = render(gameState.board)
         println(s"$board")
         println("")

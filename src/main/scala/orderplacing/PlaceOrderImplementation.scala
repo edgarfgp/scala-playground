@@ -1,7 +1,7 @@
 package orderplacing
 import orderplacing.CompoundTypes._
 import orderplacing.InternalTypes._
-import orderplacing.PlaceOrderDTO.Utils.listOfOption
+import orderplacing.Utils.listOfOption
 import orderplacing.PlaceOrderImplementation.AddressValidationError._
 import orderplacing.PlaceOrderImplementation.SendResult._
 import orderplacing.PublicTypes.PlaceOrderError._
